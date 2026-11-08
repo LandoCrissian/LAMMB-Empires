@@ -18,6 +18,8 @@ Verified locally on **2026-11-08** with Node **22.23.2**, Playwright **1.65.0**,
 
 No existing simulation or browser assertion was weakened or removed. The baseline browser screenshot output paths changed so Task002 evidence remains intact.
 
+A Linux WebKit CI run exposed a test-harness budget problem: the desktop case exhausted its 30-second total budget before the Recruit tap could complete. Trace inspection and repeated native taps showed stable control geometry. The helper had unconditionally requested scrolling even for fully visible controls; software-rendered high-DPI WebKit spent substantial animation-frame waits on these no-op requests. The helper now scrolls only when the control is clipped or its center is occluded, while retaining every full-rectangle, hit-test and minimum-target-size assertion. Native taps retain normal Playwright actionability checks. No force clicks, retries, timeout increase, runtime pixel reduction or assertion removal was used. Three concurrent local WebKit desktop repetitions then passed in **7.5, 7.6 and 7.9 seconds** under the same budget.
+
 ## Viewports and screenshots
 
 Every row passed entry-screen layout, resource visibility, command reachability and screenshot checks in both engines. Essential command targets were checked at 44 CSS pixels or greater, inside the viewport, and with an unobscured center. Compact landscape retained more than 45% of the viewport as a directly playable battlefield while the objective and minimap remained available through 44-pixel toggles.
@@ -55,6 +57,8 @@ The legal 240-second simulation fixture contained 29 units. Over 4,000 fixed ste
 | Same landscape, diagnostic 4× CPU slowdown | 7.0 ms | 9.4 ms | 9.6 ms | 294.2 ms |
 
 The normal ten-second live samples had no frame interval over 50 ms. Cold terrain initialization caused one 83.4 ms desktop and one 66.7 ms landscape interval in the isolated army harness. Under 4× CPU slowdown, the live sample had 101 intervals over 50 ms, a 66.7 ms p95 and 183.4 ms maximum. The controlled 64-event stress fixture deliberately injects visual events in a separate renderer harness; it is not presented as a legal battle or a gameplay balance result.
+
+An additional headless WebKit desktop diagnostic at DPR 2 was substantially slower: an 8.9-second wall-clock sample recorded a 158 ms frame-interval p95 despite a 2 ms Canvas JavaScript draw p95. Removing panel backdrop blur did not improve that sample. These software-rendering observations explain costly native actionability waits in that engine, and are not treated as physical Safari measurements. The quantitative table above applies to Chromium only.
 
 ## Reproduce and limits
 

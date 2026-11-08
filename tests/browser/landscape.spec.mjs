@@ -55,8 +55,27 @@ async function navigateMap(page, x, y) {
 }
 
 async function reachable(locator, { minimum = 0 } = {}) {
-  await locator.scrollIntoViewIfNeeded();
   await expect(locator).toBeVisible();
+  // WebKit waits for animation frames even when a scroll request has nothing to
+  // scroll. Only request scrolling for a clipped/covered control; native taps
+  // still perform their own actionability checks, and every geometry/hit assertion
+  // below is retained. This matters on software-rendered high-DPI CI viewports.
+  const alreadyReachable = await locator.evaluate((el) => {
+    const r = el.getBoundingClientRect();
+    const hit = document.elementFromPoint(
+      r.left + r.width / 2,
+      r.top + r.height / 2,
+    );
+    return (
+      r.left >= 0 &&
+      r.top >= 0 &&
+      r.right <= innerWidth &&
+      r.bottom <= innerHeight &&
+      !!hit &&
+      (hit === el || el.contains(hit))
+    );
+  });
+  if (!alreadyReachable) await locator.scrollIntoViewIfNeeded();
   const result = await locator.evaluate((el) => {
     const r = el.getBoundingClientRect();
     const x = r.left + r.width / 2,
