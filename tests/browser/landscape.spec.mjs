@@ -155,6 +155,12 @@ for (const viewport of viewports) {
   test(`${viewport.width}x${viewport.height} ${viewport.label}: entry and commands remain reachable`, async ({
     page,
   }, info) => {
+    // This comprehensive case checks every command group and captures two full
+    // high-DPI images. Two-CPU CI can complete all gameplay assertions yet exceed
+    // 30 seconds while encoding the final 5-megapixel artifact. Only the total
+    // case budget is extended; native actionability and assertion deadlines stay
+    // unchanged, with no forced actions or retries.
+    test.setTimeout(60_000);
     await page.setViewportSize({
       width: viewport.width,
       height: viewport.height,
