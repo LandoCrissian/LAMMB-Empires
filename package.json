@@ -1,0 +1,12 @@
+{
+  "name": "lammb-empires",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "LAMMB Empires browser RTS",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "check": "node --check src/sim/rules.mjs && node --check tests/rules.test.mjs"
+  },
+  "engines": { "node": ">=22" }
+}
