@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#102e2d" />
+    <meta
+      name="description"
+      content="Build a settlement. Command an army. Claim the Frontier. An original single-player strategy game."
+    />
+    <title>LAMMB Empires — The Frontier</title>
+    <link rel="icon" href="./assets/crest.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="./src/ui/style.css" />
+  </head>
+  <body>
+    <canvas
+      id="battlefield"
+      aria-label="Frontier battlefield. Select units and issue orders using the command controls."
+    ></canvas>
+    <div id="selection-box" hidden></div>
+    <main id="entry" class="entry">
+      <div class="entry-shade"></div>
+      <div class="entry-content">
+        <div class="eyebrow">
+          <span class="gold-line"></span> A NEW EMPIRE BEGINS
+        </div>
+        <img
+          class="crest"
+          src="./assets/crest.svg"
+          alt="LAMMB ram crest"
+          width="94"
+          height="94"
+        />
+        <h1>LAMMB<br /><span>EMPIRES</span></h1>
+        <div class="subtitle">THE FRONTIER</div>
+        <p class="entry-copy">
+          From a small settlement,<br />build something worth defending.
+        </p>
+        <button id="play" class="primary play">
+          Play LAMMB Empires <span aria-hidden="true">↗</span>
+        </button>
+        <a
+          class="genesis"
+          href="https://opensea.io/collection/lammbs-59693791"
+          target="_blank"
+          rel="noopener noreferrer"
+          >View LAMMB Genesis on OpenSea <span aria-hidden="true">↗</span></a
+        >
+        <div class="entry-meta">
+          <span>SOLO SKIRMISH</span><i></i><span>STRATEGY OVER SPENDING</span>
+        </div>
+      </div>
+      <div class="entry-location">
+        <span class="location-dot"></span> THE VERDANT MARCHES
+        <small>Frontier expedition · 001</small>
+      </div>
+    </main>
+    <section id="game-ui" hidden aria-label="Game controls">
+      <header class="topbar panel">
+        <div class="wordmark">
+          <img src="./assets/crest.svg" alt="" width="32" height="32" /><span
+            >LAMMB <small>THE FRONTIER</small></span
+          >
+        </div>
+        <div id="resources" class="resources" aria-label="Resources"></div>
+        <div class="top-actions">
+          <span id="match-time">00:00</span
+          ><button id="pause" aria-label="Pause">Ⅱ</button
+          ><button id="help" aria-label="Controls">?</button>
+        </div>
+      </header>
+      <aside class="mission panel">
+        <div class="eyebrow">YOUR EXPEDITION</div>
+        <h2>Claim the Frontier</h2>
+        <p>Destroy the Ember Town Center.<br />Keep your own standing.</p>
+        <div id="milestones"></div>
+        <div class="raid">
+          <span class="pulse"></span
+          ><span id="raid-timer">First raid in 03:00</span>
+        </div>
+      </aside>
+      <div class="map-card panel">
+        <div class="map-title">THE MARCHES <span>↑ N</span></div>
+        <canvas
+          id="minimap"
+          width="176"
+          height="124"
+          aria-label="Map. Tap to move the camera."
+        ></canvas>
+        <div class="map-legend"><span>● You</span><span>● Ember</span></div>
+      </div>
+      <div class="camera-tools panel">
+        <button data-action="home" aria-label="Center settlement">⌂</button
+        ><button data-action="zoom-in" aria-label="Zoom in">+</button
+        ><button data-action="zoom-out" aria-label="Zoom out">−</button>
+      </div>
+      <div id="toast" class="toast" role="status" aria-live="polite"></div>
+      <div id="hint" class="hint">
+        Select a worker, then tap a resource to gather.
+      </div>
+      <footer class="command-dock panel">
+        <div id="selection-info" class="selection-info"></div>
+        <div class="command-body">
+          <nav class="command-tabs" aria-label="Command groups">
+            <button data-tab="orders" class="active">Command</button
+            ><button data-tab="build">Build</button
+            ><button data-tab="train">Recruit</button>
+            <div class="groups">
+              <button data-action="workers" aria-label="Workers">
+                Workers <kbd>V</kbd></button
+              ><button data-action="army" aria-label="Army">
+                Army <kbd>G</kbd>
+              </button>
+            </div>
+          </nav>
+          <div id="actions" class="actions"></div>
+        </div>
+      </footer>
+    </section>
+    <dialog id="help-dialog" class="modal">
+      <button class="close" data-close aria-label="Close controls">×</button>
+      <div class="eyebrow">FIELD GUIDE</div>
+      <h2>Your first expedition</h2>
+      <p>
+        Select workers and tap trees, stone, gold or a farm. They gather, carry
+        and deliver supplies to your Town Center.
+      </p>
+      <p>
+        Build a barracks to recruit swordsmen and archers. Towers cover your
+        approach. Farms provide finite food; build more as they run out.
+      </p>
+      <dl>
+        <dt>Desktop</dt>
+        <dd>
+          Click to select · drag a selection box · Shift adds units ·
+          right-click to move, gather or attack. WASD/arrows pan, wheel zooms. V
+          selects workers, G selects army, H centers home, Space pauses.
+        </dd>
+        <dt>Touch</dt>
+        <dd>
+          Tap to select. Choose Move or Attack, then tap the field. Drag to pan;
+          use two fingers to pan and pinch. Choose a building, tap a location,
+          then Place building.
+        </dd>
+      </dl>
+      <p class="muted">
+        The Ember settlement lies northeast. Raids arrive along the roads.
+        Protect your workers and keep archers behind your swordsmen.
+      </p>
+      <button class="primary" data-close>Return to the Frontier</button>
+    </dialog>
+    <dialog id="pause-dialog" class="modal">
+      <div class="eyebrow">A MOMENT TO PLAN</div>
+      <h2>Expedition paused</h2>
+      <p>Your settlement will wait for you.</p>
+      <button id="resume" class="primary">Resume</button
+      ><button class="secondary" id="restart-paused">Restart</button>
+    </dialog>
+    <dialog id="result-dialog" class="modal">
+      <div class="eyebrow" id="result-eyebrow">THE FRONTIER IS YOURS</div>
+      <h2 id="result-title">Victory</h2>
+      <p id="result-copy"></p>
+      <div id="result-stats" class="result-stats"></div>
+      <button id="restart" class="primary">Restart</button>
+    </dialog>
+    <script type="module" src="./src/main.mjs"></script>
+  </body>
+</html>

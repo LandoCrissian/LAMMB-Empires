@@ -1,17 +1,16 @@
 # The Frontier — Foundation 001
 
-This is the first **tested simulation module**, not a complete playable deployment.
+This document records the original Foundation 001 milestone. Its dependency-free simulation primitives are now integrated into the playable Frontier skirmish on the same working branch and PR.
 
-The original standalone browser prototype is available as a separately supplied source ZIP; it must be imported, reviewed, and wired into these shared rules in a subsequent PR. These tests do **not** imply the current game already uses this module.
+Neither `LAMMB_Empires_The_Frontier.html` nor `LAMMB_Empires_Prototype_001.zip` was available in the task workspace. The browser game was implemented from the approved specifications, preserving the existing rules and original eight tests.
 
-## Integration plan
-1. Import the original HTML/CSS/Canvas game into a clean `web/` directory and verify the source hashes.
-2. Replace duplicated costs, recruitment gates, placement checks, and damage logic with `src/sim/rules.mjs`.
-3. Move state updates into a deterministic simulation step; use the fixed-step clock and seeded PRNG for simulation randomness.
-4. Add automated browser tests for build/recruit/attack/restart, then playtest the full encounter on desktop and mobile.
-5. Deploy a separate Netlify preview only. Do not alter lammb.fun until the owner approves the cutover.
+## Integrated implementation
+
+The game imports resource spending, placement validation, damage, the seeded PRNG and the fixed-step clock from `src/sim/rules.mjs`. Simulation state, economy, pathfinding, combat and AI live in separate modules; Canvas rendering, input gestures and HUD controls read that state and issue validated commands. See [architecture](ARCHITECTURE.md) and [verification](VERIFICATION.md) for the current implementation and evidence.
+
+Deployment remains preview-only. Production lammb.fun and DNS require separate owner authorization.
 
 ## Architecture boundaries
 - No dependencies, wallet, payment, analytics or third-party game art in this foundation.
-- Tests cover deterministic primitives and economy invariants, **not** full pathfinding, AI, browser interactions or multiplayer.
+- The original eight tests cover deterministic primitives and economy invariants. New integration, complete legal-playthrough and browser suites cover the playable skirmish.
 - Multiplayer requires a server-authoritative simulation and separate threat modeling; client-side state cannot be trusted.
