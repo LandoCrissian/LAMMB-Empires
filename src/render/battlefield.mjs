@@ -32,6 +32,7 @@ export class Battlefield {
     this.dpr = 1;
     this.positions = new Map();
     this.orderMarkers = [];
+    this.wrecks = new Map();
     this.resize();
   }
 
@@ -76,9 +77,11 @@ export class Battlefield {
     view.x = home ? home.x + home.width / 2 : 9;
     view.y = home ? home.y + home.height / 2 - 1 : 25;
     view.zoom =
-      this.width < 600
-        ? 0.95
-        : clamp(Math.min(this.width / 850, this.height / 580), 1.05, 1.6);
+      this.height <= 520 && this.width > this.height
+        ? 0.9
+        : this.width < 600
+          ? 0.95
+          : clamp(Math.min(this.width / 850, this.height / 580), 1.05, 1.6);
     return view;
   }
 
@@ -145,6 +148,50 @@ export class Battlefield {
     c.scale(view.zoom, view.zoom);
     c.drawImage(this.ground, (-state.map.height * TW) / 2 - 20, -20);
     c.restore();
+    this.drawWrecks(state, view);
+
+    // Ground order lines and individual slots make group commands legible.
+    c.save();
+    for (const unit of state.units) {
+      if (!selected.has(unit.id) || unit.hp <= 0) continue;
+      const type = unit.order?.type;
+      if (!["move", "attackMove", "attack", "hold"].includes(type)) continue;
+      let target = unit.order;
+      if (type === "attack")
+        target = [...state.units, ...state.buildings].find(
+          (e) => e.id === unit.order.targetId && e.hp > 0,
+        );
+      if (!target || !Number.isFinite(target.x)) continue;
+      const a = this.worldToScreen(unit.x, unit.y, view);
+      const b = this.worldToScreen(
+        target.x + (target.width || 0) / 2,
+        target.y + (target.height || 0) / 2,
+        view,
+      );
+      c.strokeStyle =
+        type === "hold"
+          ? "#e7d5a680"
+          : type.startsWith("attack")
+            ? "#f6b58d55"
+            : "#b7e8d84a";
+      c.lineWidth = 1;
+      c.setLineDash([4, 6]);
+      c.beginPath();
+      c.moveTo(a.x, a.y);
+      c.lineTo(b.x, b.y);
+      c.stroke();
+      c.setLineDash([]);
+      if (type === "move" || type === "attackMove" || type === "hold")
+        this.ellipse(
+          b.x,
+          b.y,
+          6 * view.zoom,
+          3 * view.zoom,
+          null,
+          c.strokeStyle,
+        );
+    }
+    c.restore();
 
     const entities = [
       ...state.nodes
@@ -191,9 +238,21 @@ export class Battlefield {
       if (kind === "node") this.node(e, isSelected);
       else if (kind === "building") this.building(e, state.time, isSelected);
       else this.unit(e, state.time, isSelected);
+      if (e.lastHitAt !== undefined && state.time - e.lastHitAt < 0.2) {
+        c.save();
+        c.globalAlpha = (1 - (state.time - e.lastHitAt) / 0.2) * 0.6;
+        this.ellipse(
+          0,
+          -12,
+          kind === "building" ? 28 : 10,
+          kind === "building" ? 10 : 5,
+          "#ffe6b0",
+        );
+        c.restore();
+      }
       c.restore();
     }
-    this.effects(state, view);
+    this.effects(state, view, selected);
     this.drawOrderMarkers(view, frameTime || performance.now() / 1000);
     if (placementGhost) this.ghost(placementGhost, view);
     const vignette = c.createRadialGradient(
@@ -1314,7 +1373,7 @@ export class Battlefield {
       );
     }
     c.restore();
-    if (selected || u.hp < u.maxHp)
+    if (selected || u.hp < u.maxHp || time - (u.lastAttackAt ?? -10) < 3)
       this.healthBar(
         0,
         -39,
@@ -1322,15 +1381,93 @@ export class Battlefield {
         u.hp / u.maxHp,
         u.faction === "player" ? "#b4e2ba" : "#efa080",
       );
-    if (selected && u.order?.type === "idle") {
+    if (selected && ["idle", "hold"].includes(u.order?.type)) {
       c.fillStyle = "#f4d893";
       c.beginPath();
       c.arc(13, -23, 2, 0, 7);
       c.fill();
+      if (u.order.type === "hold") {
+        this.ellipse(0, 0, 16, 8, null, "#f4d893");
+        this.line(
+          [
+            [-4, -8],
+            [4, -8],
+          ],
+          "#f4d893",
+          2,
+        );
+      }
     }
   }
 
-  effects(state, view) {
+  drawWrecks(state, view) {
+    if (this.wreckMap !== state.map) {
+      this.wreckMap = state.map;
+      this.wrecks.clear();
+    }
+    for (const e of state.events)
+      if (e.type === "death" && !this.wrecks.has(e.id))
+        this.wrecks.set(e.id, e);
+    const c = this.ctx;
+    for (const [id, e] of this.wrecks) {
+      const age = state.time - e.time;
+      if (age > 6) {
+        this.wrecks.delete(id);
+        continue;
+      }
+      const p = this.worldToScreen(e.x, e.y, view),
+        z = view.zoom;
+      c.save();
+      c.translate(p.x, p.y);
+      c.scale(z, z);
+      c.globalAlpha = Math.min(1, (6 - age) / 2);
+      this.ellipse(0, 0, e.width ? 32 : 12, e.width ? 13 : 5, "#17282065");
+      for (let i = 0; i < (e.width ? 7 : 3); i++) {
+        const x = (hash(id + i, e.x) - 0.5) * (e.width ? 65 : 18),
+          y = (hash(i, e.y) - 0.5) * 15;
+        this.poly(
+          [
+            [x - 5, y],
+            [x - 2, y - 5],
+            [x + 5, y - 3],
+            [x + 7, y + 1],
+            [x, y + 3],
+          ],
+          e.width ? (i % 2 ? "#8b8871" : "#a3a083") : "#787b69",
+        );
+      }
+      c.restore();
+    }
+  }
+
+  impact(point, zoom, age, large = false) {
+    const c = this.ctx;
+    const duration = large ? 0.9 : 0.4;
+    if (age < 0 || age > duration) return;
+    c.save();
+    c.globalAlpha *= 1 - age / duration;
+    for (let i = 0; i < (large ? 7 : 4); i++) {
+      const a = i * 2.4,
+        r = (4 + age * (large ? 45 : 30)) * zoom;
+      this.line(
+        [
+          [
+            point.x + Math.cos(a) * r,
+            point.y - 12 * zoom + Math.sin(a) * r * 0.6,
+          ],
+          [
+            point.x + Math.cos(a) * (r + 5 * zoom),
+            point.y - 12 * zoom + Math.sin(a) * (r + 5 * zoom) * 0.6,
+          ],
+        ],
+        large ? "#d1b58c" : "#ffe3a0",
+        large ? 4 * zoom : 1.7 * zoom,
+      );
+    }
+    c.restore();
+  }
+
+  effects(state, view, selected) {
     const c = this.ctx;
     for (const e of state.events || []) {
       const age = state.time - e.time;
@@ -1354,17 +1491,19 @@ export class Battlefield {
           f = clamp(age / 0.32, 0, 1);
         const x = p.x + (target.x - p.x) * f,
           y = p.y + (target.y - p.y) * f - Math.sin(f * Math.PI) * 32 * z;
-        this.line(
-          [
+        if (age < 0.32)
+          this.line(
             [
-              x - (target.x - p.x) * 0.035,
-              y - (target.y - p.y) * 0.035 - 15 * z,
+              [
+                x - (target.x - p.x) * 0.035,
+                y - (target.y - p.y) * 0.035 - 15 * z,
+              ],
+              [x, y - 15 * z],
             ],
-            [x, y - 15 * z],
-          ],
-          "#eee0a3",
-          1.6 * z,
-        );
+            "#eee0a3",
+            1.6 * z,
+          );
+        this.impact(target, z, age - 0.24);
       } else if (["hit", "damage", "attack"].includes(e.type)) {
         const hit = Number.isFinite(e.targetX)
           ? this.worldToScreen(e.targetX, e.targetY, view)
@@ -1386,6 +1525,7 @@ export class Battlefield {
         }
       } else if (["death", "destroyed"].includes(e.type)) {
         this.ellipse(p.x, p.y, age * 28 * z, age * 12 * z, "#ceb98555");
+        this.impact(p, z, age, !!e.width);
       } else if (["order", "move"].includes(e.type))
         this.ellipse(
           p.x,
@@ -1395,6 +1535,13 @@ export class Battlefield {
           null,
           "#b9e5c6",
         );
+      if (e.type === "attack" && selected?.has(e.targetId) && age > 0.18) {
+        const hit = this.worldToScreen(e.targetX, e.targetY, view);
+        c.fillStyle = "#ffe3b4";
+        c.font = `bold ${Math.max(10, 11 * z)}px Arial`;
+        c.textAlign = "center";
+        c.fillText(`−${e.damage}`, hit.x, hit.y - (30 + age * 18) * z);
+      }
       c.restore();
     }
   }

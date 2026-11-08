@@ -12,12 +12,36 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-chromium",
+      testMatch: "**/frontier.spec.mjs",
       use: { browserName: "chromium", viewport: { width: 1440, height: 900 } },
     },
     {
       name: "mobile-chromium",
+      testMatch: "**/frontier.spec.mjs",
       use: {
         browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "landscape-chromium",
+      testMatch: "**/landscape.spec.mjs",
+      use: {
+        browserName: "chromium",
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "landscape-webkit",
+      testMatch: "**/landscape.spec.mjs",
+      use: {
+        browserName: "webkit",
         viewport: { width: 390, height: 844 },
         deviceScaleFactor: 2,
         isMobile: true,

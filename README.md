@@ -25,13 +25,17 @@ Choose **Build**, pick a structure and place it on a valid footprint near your s
 
 Use swordsmen to screen archers. Archers and towers fire from range, while rocky ridges obstruct ranged fire. Enemy raids begin after a preparation period and grow stronger. Attack the enemy settlement northeast; destroying all its barracks stops new reinforcements. Destroy its Town Center to win.
 
+Group movement uses loose ranks with melee troops ahead of archers. Units separate locally while keeping their terrain paths and orders. **Hold Position** keeps a soldier at its current location and only fires at targets already in weapon range; **Stop** cancels the current order and restores free defensive response. Enemy guards share nearby sightings, protect threatened structures, and rally raids before advancing.
+
+Phone landscape has a compact command dock, persistent resources and raid countdown, and separate **Objectives** and **Minimap** toggles. Rotating or changing browser viewport size preserves the expedition, selection, camera position and zoom. Fullscreen and orientation locking are not required.
+
 | Desktop | Touch |
 | --- | --- |
 | Click a unit or structure to select | Tap a unit or structure to select |
 | Drag a selection box; Shift adds units | Use **Workers** or **Army** to select groups |
 | Right-click to move, gather or attack | Choose **Move** or **Attack**, then tap the battlefield |
 | WASD/arrows pan; mouse wheel zooms | Drag to pan; two fingers pan and pinch to zoom |
-| V workers · G army · H home · Space pause | Large dock controls and zoom buttons |
+| V workers · G army · H home · J hold · Space pause | Large dock controls and zoom buttons |
 
 The in-game field guide explains these controls. Restart is available when paused and after victory or defeat.
 
@@ -41,17 +45,18 @@ The in-game field guide explains these controls. Restart is available when pause
 npm run check
 npm test
 npm run test:balance
-npx playwright install chromium
+npx playwright install chromium webkit
 npm run test:browser
+npm run test:performance
 ```
 
-The Node suite checks pure rules and complete simulation behavior. Playwright exercises real desktop and iPhone-sized Chromium viewports and captures representative screenshots. GitHub Actions runs both suites and uploads browser evidence. See [verification notes](docs/VERIFICATION.md) for scope and actual recorded results.
+The Node suite checks pure rules and complete simulation behavior. Playwright preserves the original desktop/mobile suite and adds landscape, touch, rotation and control-reachability coverage in Chromium and WebKit. The performance script records local simulation, pathfinding, separation, Canvas drawing and frame-interval measurements. GitHub Actions runs the applicable suites and uploads browser evidence. See [Task003 verification](docs/TASK003_VERIFICATION.md) for this milestone and [Task002 verification](docs/VERIFICATION.md) for the earlier baseline.
 
 ## Architecture and product boundaries
 
 [Architecture](docs/ARCHITECTURE.md) describes simulation, AI, economy, combat, rendering and input boundaries. [Licenses](docs/LICENSES.md) records dependencies and artwork provenance.
 
-This milestone has one skirmish map, a limited roster, scheduled AI waves and no saved progression. The legal-command balance driver completes the economy-to-assault loop within the intended 10–15-minute window for the checked seeds; player skill and decisions affect actual duration. Difficulty still needs broad player testing. Browser viewport tests do not establish physical iPhone compatibility or measured 60 FPS performance.
+This milestone has one skirmish map, a limited roster, scheduled AI waves and no saved progression. The legal-command balance driver completes the economy-to-assault loop within the intended 10–15-minute window for the checked seeds; player skill and decisions affect actual duration. Difficulty still needs broad player testing. Browser viewport and WebKit tests do not establish physical iPhone compatibility or physical-device frame rate.
 
 Strategy determines victory. No paid military stats, premium units, purchasable research speedups or wallet-gated advantages are included. Future development deepens tactics, then civilization progression, then server-authoritative multiplayer and alliances.
 

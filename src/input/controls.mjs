@@ -15,6 +15,7 @@ export function attachControls({
   onPause,
   onGroup,
   onHome,
+  onHold,
   enabled,
 }) {
   const pointers = new Map();
@@ -216,6 +217,7 @@ export function attachControls({
     if (key === "v") onGroup("workers");
     if (key === "g") onGroup("army");
     if (key === "h") onHome();
+    if (key === "j" && !e.repeat) onHold();
     if (key === " " && !e.repeat) onPause();
   });
   window.addEventListener("keyup", (e) => keys.delete(e.key.toLowerCase()));

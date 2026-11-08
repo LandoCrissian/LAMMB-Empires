@@ -76,6 +76,6 @@ export const INITIAL_RESOURCES = Object.freeze({
 export const AI_CONFIG = Object.freeze({
   firstRaid: 180,
   raidInterval: 125,
-  reinforcementInterval: 38,
+  reinforcementInterval: 33,
   maximumArmy: 20,
 });

@@ -1,5 +1,7 @@
 # Frontier verification
 
+This records the Task002 baseline. See [Task003 landscape and tactical warfare verification](TASK003_VERIFICATION.md) for the current milestone.
+
 ## Reproduce
 
 ```sh

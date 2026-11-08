@@ -68,11 +68,30 @@
         <div id="resources" class="resources" aria-label="Resources"></div>
         <div class="top-actions">
           <span id="match-time">00:00</span
+          ><button
+            id="toggle-objective"
+            aria-label="Objectives"
+            aria-controls="mission"
+            aria-expanded="true"
+          >
+            Goal</button
+          ><button
+            id="toggle-minimap"
+            aria-label="Minimap"
+            aria-controls="map-card"
+            aria-expanded="true"
+          >
+            Map</button
           ><button id="pause" aria-label="Pause">Ⅱ</button
           ><button id="help" aria-label="Controls">?</button>
         </div>
       </header>
-      <aside class="mission panel">
+      <div
+        id="field-status"
+        class="field-status panel"
+        aria-live="polite"
+      ></div>
+      <aside id="mission" class="mission panel">
         <div class="eyebrow">YOUR EXPEDITION</div>
         <h2>Claim the Frontier</h2>
         <p>Destroy the Ember Town Center.<br />Keep your own standing.</p>
@@ -82,7 +101,7 @@
           ><span id="raid-timer">First raid in 03:00</span>
         </div>
       </aside>
-      <div class="map-card panel">
+      <div id="map-card" class="map-card panel">
         <div class="map-title">THE MARCHES <span>↑ N</span></div>
         <canvas
           id="minimap"
@@ -137,7 +156,8 @@
         <dd>
           Click to select · drag a selection box · Shift adds units ·
           right-click to move, gather or attack. WASD/arrows pan, wheel zooms. V
-          selects workers, G selects army, H centers home, Space pauses.
+          selects workers, G selects army, H centers home, J holds position,
+          Space pauses.
         </dd>
         <dt>Touch</dt>
         <dd>
@@ -148,7 +168,10 @@
       </dl>
       <p class="muted">
         The Ember settlement lies northeast. Raids arrive along the roads.
-        Protect your workers and keep archers behind your swordsmen.
+        Protect your workers and keep archers behind your swordsmen. Hold
+        Position keeps soldiers in place and fires only within weapon range.
+        Stop cancels orders and restores normal defensive pursuit. Armies form
+        loose ranks with archers behind the front line.
       </p>
       <button class="primary" data-close>Return to the Frontier</button>
     </dialog>

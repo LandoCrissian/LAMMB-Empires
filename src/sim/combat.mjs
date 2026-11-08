@@ -17,7 +17,7 @@ export function enemies(state, faction) {
 
 // Structures cannot shoot through the river banks. Ground units can fire across water,
 // but ridges occlude arrows and create useful firing corridors.
-function lineOfSight(state, source, target) {
+export function lineOfSight(state, source, target) {
   const a = entityCenter(source),
     b = entityCenter(target),
     steps = Math.ceil(distance(a, b) * 3);
@@ -49,7 +49,12 @@ function strike(state, attacker, target, def) {
     b = entityCenter(target);
   target.hp = applyDamage(target.hp, def.damage);
   attacker.cooldown = def.period;
+  attacker.lastAttackAt = state.time;
+  attacker.lastTargetId = target.id;
+  target.lastHitAt = state.time;
+  target.lastHitDamage = def.damage;
   event(state, "attack", a.x, a.y, undefined, {
+    attackerId: attacker.id,
     targetX: b.x,
     targetY: b.y,
     targetId: target.id,
@@ -59,8 +64,11 @@ function strike(state, attacker, target, def) {
   });
   if (target.hp === 0) {
     event(state, "death", b.x, b.y, undefined, {
+      entityId: target.id,
       faction: target.faction,
       entityType: target.type,
+      width: target.width || 0,
+      height: target.height || 0,
     });
     if (target.width) state.obstacleVersion++;
   }
@@ -69,6 +77,7 @@ function strike(state, attacker, target, def) {
 export function updateCombatUnit(state, unit, dt) {
   const def = UNIT_TYPES[unit.type],
     order = unit.order;
+  unit.combatTargetId = null;
   unit.cooldown = Math.max(0, unit.cooldown - dt);
   if (order.type === "move") {
     if (moveToward(state, unit, order, 0.2, dt, def.speed))
@@ -80,6 +89,18 @@ export function updateCombatUnit(state, unit, dt) {
     return;
   }
   let target;
+  if (order.type === "hold") {
+    target = findTarget(state, unit, def.range + 0.05, (candidate) =>
+      lineOfSight(state, unit, candidate),
+    );
+    if (target) {
+      unit.combatTargetId = target.id;
+      if (unit.cooldown <= 0) strike(state, unit, target, def);
+    }
+    // Hold is an actual firing discipline: do not path toward a target or home.
+    clearPath(unit);
+    return;
+  }
   if (order.type === "attack") target = byId(state, order.targetId);
   if (
     target &&
@@ -96,7 +117,25 @@ export function updateCombatUnit(state, unit, dt) {
     ["idle", "attackMove"].includes(unit.order.type)
   ) {
     // Enemy defenders remain tethered to their own settlement until committed to a raid.
-    target = findTarget(state, unit, def.sight);
+    const coordinated =
+      unit.faction === "enemy"
+        ? byId(state, unit.raiding ? unit.raidTargetId : unit.defenseTargetId)
+        : null;
+    const nearby = findTarget(
+      state,
+      unit,
+      def.sight,
+      (candidate) =>
+        unit.faction !== "enemy" || lineOfSight(state, unit, candidate),
+    );
+    target =
+      coordinated &&
+      coordinated.faction === "player" &&
+      distance(unit, coordinated) <= 8 &&
+      (unit.raiding || !unit.home || distance(unit.home, coordinated) <= 10) &&
+      (!unit.raiding || !nearby || nearby.width)
+        ? coordinated
+        : nearby;
     if (
       unit.faction === "enemy" &&
       !unit.raiding &&
@@ -107,6 +146,7 @@ export function updateCombatUnit(state, unit, dt) {
       target = null;
   }
   if (target) {
+    unit.combatTargetId = target.id;
     const inRange = distanceTo(unit, target) <= def.range + 0.05;
     if (inRange && (def.range < 2 || lineOfSight(state, unit, target))) {
       clearPath(unit);
@@ -124,6 +164,7 @@ export function updateCombatUnit(state, unit, dt) {
     unit.faction === "enemy" &&
     unit.home &&
     !unit.raiding &&
+    unit.aiRole !== "rally" &&
     distance(unit, unit.home) > 1
   )
     moveToward(state, unit, unit.home, 0.75, dt, def.speed);

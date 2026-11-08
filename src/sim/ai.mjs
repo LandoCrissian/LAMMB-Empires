@@ -1,10 +1,136 @@
-import { AI_CONFIG } from "./config.mjs";
+import { AI_CONFIG, UNIT_TYPES } from "./config.mjs";
 import { makeUnit } from "./economy.mjs";
 import { nearestOpen, spawnPoint, clearPath } from "./movement.mjs";
-import { event, entityCenter } from "./geometry.mjs";
+import { formationDestinations } from "./formations.mjs";
+import { event, entityCenter, distance, distanceTo } from "./geometry.mjs";
+import { lineOfSight } from "./combat.mjs";
+
+const DECISION_INTERVAL = 0.75;
+const military = (unit) => unit.type !== "worker" && unit.hp > 0;
+const importance = (building) =>
+  building.type === "barracks" ? 3 : building.type === "townCenter" ? 2 : 1;
+
+function groupOrder(state, units, destination) {
+  for (const point of formationDestinations(state, units, destination)) {
+    const unit = units.find((candidate) => candidate.id === point.id);
+    if (!unit) continue;
+    unit.order = { type: "attackMove", x: point.x, y: point.y };
+    clearPath(unit);
+  }
+}
+
+// Structures report only attackers inside their local sight. Nearby guards
+// share that observation, rather than inspecting the player's entire army.
+function coordinateDefense(state, guards, structures) {
+  const reports = [];
+  for (const building of structures) {
+    for (const opponent of state.units) {
+      if (
+        opponent.faction !== "player" ||
+        opponent.hp <= 0 ||
+        distanceTo(opponent, building) > 6 ||
+        !lineOfSight(state, building, opponent)
+      )
+        continue;
+      const attacking =
+        opponent.order.type === "attack" &&
+        opponent.order.targetId === building.id;
+      reports.push({
+        building,
+        opponent,
+        score: importance(building) + (attacking ? 4 : 0),
+      });
+    }
+  }
+  reports.sort(
+    (a, b) => b.score - a.score || a.opponent.id.localeCompare(b.opponent.id),
+  );
+  for (const guard of guards) {
+    guard.defenseTargetId = null;
+    if (guard.raiding) continue;
+    const report = reports.find(
+      ({ building, opponent }) =>
+        distance(guard, building) <= 9 &&
+        distance(guard, opponent) <= 8 &&
+        (!guard.home || distance(guard.home, opponent) <= 10),
+    );
+    if (report) {
+      guard.defenseTargetId = report.opponent.id;
+      guard.aiRole = "defend";
+      guard.defendingId = report.building.id;
+    } else if (guard.aiRole !== "rally") {
+      guard.aiRole = "guard";
+      guard.defendingId = null;
+    }
+  }
+}
+
+function prepareRaid(state, guards, barracksList) {
+  const staging = barracksList
+    .slice()
+    .sort((a, b) => b.y - a.y || a.id.localeCompare(b.id))[0];
+  if (!staging) return;
+  const rally = nearestOpen(state, staging.x - 1, staging.y - 2);
+  if (!rally) return;
+  const available = guards.filter(
+    (unit) => !unit.raiding && !unit.defenseTargetId,
+  );
+  available.sort(
+    (a, b) =>
+      distance(a, rally) - distance(b, rally) || a.id.localeCompare(b.id),
+  );
+  const selected = available.slice(0, Math.min(4 + state.ai.wave, 9));
+  state.ai.rally = {
+    x: rally.x,
+    y: rally.y,
+    ids: selected.map((unit) => unit.id),
+  };
+  for (const unit of selected) unit.aiRole = "rally";
+  groupOrder(state, selected, rally);
+}
+
+// The original Town Center is the scenario objective. A new player building
+// becomes a tactical raid target only when a squad member actually sees it.
+function coordinateRaid(state, guards) {
+  const squads = new Map();
+  for (const unit of guards) {
+    if (!unit.raiding) continue;
+    const key = unit.raidSquadId || 0;
+    if (!squads.has(key)) squads.set(key, []);
+    squads.get(key).push(unit);
+  }
+  for (const squad of squads.values()) {
+    const visible = state.buildings.filter(
+      (building) =>
+        building.faction === "player" &&
+        building.hp > 0 &&
+        squad.some(
+          (unit) =>
+            distanceTo(unit, building) <= UNIT_TYPES[unit.type].sight &&
+            lineOfSight(state, unit, building),
+        ),
+    );
+    visible.sort(
+      (a, b) => importance(b) - importance(a) || a.id.localeCompare(b.id),
+    );
+    for (const unit of squad) {
+      unit.raidTargetId =
+        visible.find((building) => distanceTo(unit, building) <= 8)?.id || null;
+    }
+  }
+}
 
 export function updateAI(state) {
   const ai = state.ai;
+  const guards = state.units.filter(
+    (unit) => unit.faction === "enemy" && military(unit),
+  );
+  const structures = state.buildings.filter(
+    (building) =>
+      building.faction === "enemy" &&
+      building.hp > 0 &&
+      building.progress === 1,
+  );
   const barracksList = state.buildings.filter(
     (b) =>
       b.faction === "enemy" &&
@@ -36,8 +162,14 @@ export function updateAI(state) {
         );
     }
   }
+  if (state.time >= (ai.nextDecision || 0)) {
+    ai.nextDecision = state.time + DECISION_INTERVAL;
+    coordinateDefense(state, guards, structures);
+    coordinateRaid(state, guards);
+  }
   if (!ai.warned && state.time >= ai.nextRaid - 30) {
     ai.warned = true;
+    prepareRaid(state, guards, barracksList);
     event(
       state,
       "warning",
@@ -54,24 +186,41 @@ export function updateAI(state) {
       (b) => b.type === "townCenter" && b.faction === "player" && b.hp > 0,
     );
     if (!objective) return;
-    const troops = state.units
-      .filter((u) => u.faction === "enemy" && u.hp > 0 && !u.raiding)
+    const rallied = new Set(ai.rally?.ids || []);
+    const troops = guards
+      .filter((u) => !u.raiding && !u.defenseTargetId)
+      .sort(
+        (a, b) =>
+          Number(rallied.has(b.id)) - Number(rallied.has(a.id)) ||
+          a.id.localeCompare(b.id),
+      )
       .slice(0, Math.min(3 + ai.wave, 9));
     const center = entityCenter(objective);
     const p = nearestOpen(state, center.x, center.y);
     if (!p) return;
     for (const unit of troops) {
-      unit.order = { type: "attackMove", x: p.x, y: p.y };
       unit.raiding = true;
-      clearPath(unit);
+      unit.aiRole = "raid";
+      unit.raidSquadId = ai.wave;
+      unit.defenseTargetId = null;
     }
+    groupOrder(state, troops, p);
+    ai.rally = null;
     if (troops.length)
       event(
         state,
         "raid",
         33,
         9,
-        `Raid ${ai.wave}: ${troops.length} enemies march on the Frontier.`,
+        `Raid ${ai.wave}: ${troops.length} enemies advance together.`,
+      );
+    else if (guards.some((unit) => unit.defenseTargetId))
+      event(
+        state,
+        "defense",
+        33,
+        9,
+        "Ember troops hold their settlement against your assault.",
       );
   }
 }

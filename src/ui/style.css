@@ -9,11 +9,18 @@ html,
 body {
   margin: 0;
   width: 100%;
-  height: 100%;
+  height: var(--app-height, 100dvh);
   overflow: hidden;
   background: #173c35;
   color: #f1eee0;
   font-family: Arial, Helvetica, sans-serif;
+}
+body {
+  position: relative;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
 }
 button,
 a {
@@ -1012,5 +1019,503 @@ h1 span {
   }
   .camera-tools {
     bottom: 286px;
+  }
+}
+
+/* Panel access remains visible when the battlefield overlays are collapsed. */
+.field-status {
+  display: none;
+  position: absolute;
+  top: 94px;
+  left: 14px;
+  padding: 10px 13px;
+  border-radius: 5px;
+  color: #d5cba9;
+  font-size: 11px;
+  pointer-events: none;
+}
+.objectives-closed .field-status {
+  display: block;
+}
+.raid-imminent .field-status {
+  color: #ffe0bc;
+  border-color: #df9d6f;
+  background: #453229ed;
+}
+.raid-imminent #toggle-objective {
+  border-color: #dca075;
+  color: #ffd5a0;
+}
+.top-actions button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.topbar {
+  top: calc(12px + var(--safe-top));
+  left: calc(14px + var(--safe-left));
+  right: calc(14px + var(--safe-right));
+}
+.command-dock {
+  left: calc(14px + var(--safe-left));
+  right: calc(14px + var(--safe-right));
+  bottom: calc(14px + var(--safe-bottom));
+}
+.modal {
+  max-height: calc(
+    var(--app-height, 100dvh) - var(--safe-top) - var(--safe-bottom) - 24px
+  );
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.actions {
+  overscroll-behavior-x: contain;
+}
+.command-tabs > button,
+.groups button {
+  min-height: 44px;
+  min-width: 44px;
+}
+@media (pointer: coarse) {
+  button {
+    min-width: 44px;
+  }
+}
+#toggle-objective,
+#toggle-minimap {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px;
+}
+.toast.urgent {
+  border-color: #e2a06e;
+  color: #ffdeb4;
+  background: #48342cf5;
+  box-shadow:
+    0 0 0 3px #d3985d18,
+    0 7px 25px #071d2744;
+}
+.result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.result-stats > div {
+  padding: 12px 8px;
+  background: #ffffff07;
+  border: 1px solid #a9b5a42b;
+  border-radius: 5px;
+}
+.result-stats strong {
+  display: block;
+  font-size: 20px;
+  font-family: Georgia, serif;
+  font-weight: 400;
+}
+.result-stats small {
+  display: block;
+  font-size: 10px;
+  color: #b8c5b7;
+  margin-top: 7px;
+}
+#result-dialog[data-outcome="victory"] {
+  border-color: #96baa1;
+}
+#result-dialog[data-outcome="defeat"] {
+  border-color: #ca916f;
+}
+@media (max-width: 900px) {
+  .top-actions {
+    gap: 4px;
+  }
+  .topbar {
+    gap: 8px;
+  }
+  .resources {
+    gap: 15px;
+  }
+  .wordmark {
+    min-width: 110px;
+  }
+}
+@media (max-width: 600px) {
+  .topbar {
+    top: calc(7px + var(--safe-top));
+    left: calc(7px + var(--safe-left));
+    right: calc(7px + var(--safe-right));
+    height: 104px;
+  }
+  .top-actions button {
+    width: 44px;
+    min-height: 44px;
+    padding: 3px;
+  }
+  .top-actions {
+    gap: 3px;
+  }
+  .wordmark {
+    min-width: 0;
+    font-size: 12px;
+  }
+  .wordmark small {
+    font-size: 6px;
+    letter-spacing: 1px;
+  }
+  .command-dock {
+    left: calc(7px + var(--safe-left));
+    right: calc(7px + var(--safe-right));
+    bottom: calc(7px + var(--safe-bottom));
+  }
+  .mission,
+  .map-card,
+  .field-status {
+    top: calc(119px + var(--safe-top));
+  }
+  .mission {
+    left: calc(7px + var(--safe-left));
+  }
+  .map-card {
+    right: calc(7px + var(--safe-right));
+  }
+  .field-status {
+    left: calc(7px + var(--safe-left));
+    max-width: 220px;
+    font-size: 10px;
+  }
+  .camera-tools {
+    right: calc(7px + var(--safe-right));
+    bottom: calc(286px + var(--safe-bottom));
+  }
+  .camera-tools button {
+    width: 44px;
+    min-height: 44px;
+  }
+  .hint {
+    bottom: calc(230px + var(--safe-bottom));
+  }
+  .action {
+    flex: 0 0 100px;
+    min-width: 100px;
+  }
+  .actions {
+    scrollbar-width: thin;
+  }
+}
+
+/* Landscape is a wide battlefield with a shallow command console, not scaled portrait. */
+body.compact-landscape .topbar {
+  top: calc(6px + var(--safe-top));
+  left: calc(8px + var(--safe-left));
+  right: calc(8px + var(--safe-right));
+  height: 50px;
+  padding: 3px 8px;
+  display: flex;
+  gap: 10px;
+}
+body.compact-landscape .wordmark {
+  min-width: 24px;
+  flex: 0 0 24px;
+  gap: 0;
+}
+body.compact-landscape .wordmark img {
+  width: 27px;
+  height: 27px;
+}
+body.compact-landscape .wordmark > span {
+  display: none;
+}
+body.compact-landscape .resources {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  justify-content: space-evenly;
+}
+body.compact-landscape .resource {
+  gap: 5px;
+}
+body.compact-landscape .resource-icon {
+  font-size: 17px;
+}
+body.compact-landscape .resource b {
+  font-size: 13px;
+}
+body.compact-landscape .resource small {
+  font-size: 8px;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+body.compact-landscape .top-actions {
+  gap: 3px;
+}
+body.compact-landscape .top-actions button {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 3px;
+  font-size: 19px;
+}
+body.compact-landscape #match-time {
+  display: none;
+}
+body.compact-landscape #toggle-objective,
+body.compact-landscape #toggle-minimap {
+  font-size: 11px;
+}
+body.compact-landscape .mission {
+  top: calc(62px + var(--safe-top));
+  left: calc(8px + var(--safe-left));
+  width: 224px;
+  padding: 12px;
+  max-height: calc(
+    var(--app-height, 100dvh) - 182px - var(--safe-top) - var(--safe-bottom)
+  );
+  overflow: auto;
+  overscroll-behavior: contain;
+  z-index: 3;
+}
+body.compact-landscape .mission h2 {
+  font-size: 17px;
+  margin: 7px 0;
+}
+body.compact-landscape .mission p {
+  font-size: 11px;
+  margin: 6px 0;
+  line-height: 1.5;
+}
+body.compact-landscape .mission .eyebrow {
+  font-size: 8px;
+}
+body.compact-landscape .milestone {
+  margin: 6px 0;
+  font-size: 10px;
+}
+body.compact-landscape .raid {
+  font-size: 10px;
+  padding-top: 8px;
+  margin-top: 9px;
+}
+body.compact-landscape .field-status {
+  top: calc(62px + var(--safe-top));
+  left: calc(8px + var(--safe-left));
+  font-size: 10px;
+  padding: 8px 12px;
+}
+body.compact-landscape .map-card {
+  top: calc(62px + var(--safe-top));
+  right: calc(8px + var(--safe-right));
+  width: 148px;
+  padding: 7px;
+  z-index: 3;
+}
+body.compact-landscape .map-card canvas {
+  width: 132px;
+  height: 92px;
+}
+body.compact-landscape .map-title,
+body.compact-landscape .map-legend {
+  font-size: 8px;
+}
+body.compact-landscape .command-dock {
+  left: calc(8px + var(--safe-left));
+  right: calc(8px + var(--safe-right));
+  bottom: calc(6px + var(--safe-bottom));
+  min-height: 0;
+  height: 108px;
+  display: flex;
+  gap: 12px;
+  padding: 6px 10px;
+}
+body.compact-landscape .selection-info {
+  width: 132px;
+  flex: 0 0 132px;
+  display: block;
+  border-right: 1px solid #91a7992b;
+  border-bottom: 0;
+  padding: 8px 10px 0 0;
+  min-height: 0;
+}
+body.compact-landscape .selection-info .portrait {
+  float: left;
+  font-size: 22px;
+  margin: 0 8px 5px 0;
+}
+body.compact-landscape .selection-info h3 {
+  font-size: 13px;
+  margin: 0 0 4px;
+}
+body.compact-landscape .selection-info p {
+  font-size: 9px;
+  line-height: 1.4;
+  margin: 3px 0;
+}
+body.compact-landscape .selection-info .health-track {
+  width: 100%;
+  height: 3px;
+  margin: 9px 0 4px;
+}
+body.compact-landscape .selection-hp {
+  display: none;
+}
+body.compact-landscape .command-body {
+  display: flex;
+  flex-direction: column;
+}
+body.compact-landscape .command-tabs {
+  min-height: 44px;
+  height: 44px;
+  padding: 0 0 2px;
+  gap: 2px;
+}
+body.compact-landscape .command-tabs > button {
+  min-height: 44px;
+  font-size: 11px;
+  padding: 4px 12px;
+}
+body.compact-landscape .groups {
+  gap: 3px;
+}
+body.compact-landscape .groups button {
+  min-height: 44px;
+  font-size: 11px;
+  padding: 4px 12px;
+}
+body.compact-landscape kbd {
+  display: none;
+}
+body.compact-landscape .actions {
+  display: flex;
+  gap: 5px;
+  margin-top: 3px;
+  min-height: 44px;
+  padding: 0;
+  overflow-x: auto;
+}
+body.compact-landscape .action {
+  flex: 1 0 76px;
+  min-width: 76px;
+  min-height: 44px;
+  height: 44px;
+  padding: 4px 8px;
+}
+body.compact-landscape .action strong {
+  font-size: 11px;
+}
+body.compact-landscape .action small {
+  font-size: 9px;
+  margin-top: 3px;
+}
+body.compact-landscape .action .action-symbol {
+  font-size: 14px;
+  margin-right: 5px;
+}
+body.compact-landscape .camera-tools {
+  right: calc(8px + var(--safe-right));
+  bottom: calc(120px + var(--safe-bottom));
+  padding: 2px;
+  gap: 2px;
+}
+body.compact-landscape .camera-tools button {
+  width: 44px;
+  min-height: 44px;
+  font-size: 20px;
+}
+body.compact-landscape .hint {
+  bottom: calc(121px + var(--safe-bottom));
+  left: calc(8px + var(--safe-left));
+  transform: none;
+  max-width: calc(100% - 190px - var(--safe-left) - var(--safe-right));
+  min-width: 0;
+  font-size: 10px;
+  padding: 7px 10px;
+  white-space: normal;
+  text-align: left;
+  border-radius: 5px;
+}
+body.compact-landscape .toast {
+  top: calc(64px + var(--safe-top));
+  max-width: calc(100% - 300px);
+  font-size: 11px;
+  padding: 9px 15px;
+}
+body.compact-landscape .entry {
+  padding: 16px calc(30px + var(--safe-left));
+  align-items: center;
+}
+body.compact-landscape .entry-content {
+  width: 365px;
+  display: grid;
+  grid-template-columns: 1fr;
+}
+body.compact-landscape .entry .eyebrow {
+  font-size: 8px;
+  letter-spacing: 2px;
+}
+body.compact-landscape .crest {
+  display: none;
+}
+body.compact-landscape h1 {
+  font-size: 48px;
+  margin: 13px 0 11px;
+}
+body.compact-landscape h1 br {
+  display: none;
+}
+body.compact-landscape h1 span {
+  display: block;
+  font-size: 0.77em;
+  letter-spacing: 4px;
+  margin-top: 3px;
+}
+body.compact-landscape .subtitle {
+  font-size: 10px;
+  letter-spacing: 6px;
+}
+body.compact-landscape .entry-copy {
+  font-size: 16px;
+  line-height: 1.35;
+  margin: 13px 0;
+}
+body.compact-landscape .play {
+  min-height: 46px;
+  height: 46px;
+  width: 320px;
+  font-size: 13px;
+}
+body.compact-landscape .genesis {
+  margin-top: 5px;
+  width: 320px;
+  min-height: 44px;
+  align-items: center;
+  padding: 5px 0;
+  font-size: 11px;
+}
+body.compact-landscape .entry-meta {
+  margin-top: 9px;
+  font-size: 7px;
+  letter-spacing: 1px;
+}
+body.compact-landscape .entry-location {
+  right: calc(20px + var(--safe-right));
+  bottom: calc(16px + var(--safe-bottom));
+  font-size: 8px;
+}
+@media (max-width: 720px) {
+  body.compact-landscape .selection-info {
+    width: 106px;
+    flex-basis: 106px;
+  }
+  body.compact-landscape .command-dock {
+    gap: 8px;
+    padding: 6px 8px;
+  }
+  body.compact-landscape .command-tabs > button,
+  body.compact-landscape .groups button {
+    padding: 4px 9px;
+  }
+  body.compact-landscape .action {
+    padding: 4px 5px;
+    flex-basis: 76px;
+  }
+  body.compact-landscape .action small {
+    font-size: 8px;
   }
 }

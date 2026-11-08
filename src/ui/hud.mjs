@@ -57,6 +57,17 @@ export class HUD {
     this.lastActions = "";
     this.lastSelection = "";
     this.lastToast = 0;
+    this.compact = null;
+    this.panels = {
+      regular: { objectives: true, minimap: true },
+      compact: { objectives: false, minimap: false },
+    };
+    el("toggle-objective").addEventListener("click", () =>
+      this.togglePanel("objectives"),
+    );
+    el("toggle-minimap").addEventListener("click", () =>
+      this.togglePanel("minimap"),
+    );
     document.querySelector("#game-ui").addEventListener("click", (e) => {
       const tab = e.target.closest("[data-tab]");
       if (tab) {
@@ -71,10 +82,42 @@ export class HUD {
       if (button && !button.disabled) onAction(button.dataset.action);
     });
   }
-  toast(text) {
+  setLayout(compact) {
+    this.compact = compact;
+    this.applyPanels();
+  }
+  togglePanel(panel) {
+    const preferences = this.panels[this.compact ? "compact" : "regular"];
+    preferences[panel] = !preferences[panel];
+    this.applyPanels();
+  }
+  applyPanels() {
+    const preferences = this.panels[this.compact ? "compact" : "regular"];
+    document.body.classList.toggle(
+      "objectives-closed",
+      !preferences.objectives,
+    );
+    document.body.classList.toggle("minimap-closed", !preferences.minimap);
+    el("mission").hidden = !preferences.objectives;
+    el("map-card").hidden = !preferences.minimap;
+    el("toggle-objective").setAttribute(
+      "aria-expanded",
+      String(preferences.objectives),
+    );
+    el("toggle-minimap").setAttribute(
+      "aria-expanded",
+      String(preferences.minimap),
+    );
+  }
+  toast(text, { urgent = false, passive = false } = {}) {
+    const now = performance.now();
+    if (passive && !urgent && now < (this.urgentToastUntil || 0)) return;
     el("toast").textContent = text;
     el("toast").classList.add("visible");
-    this.lastToast = performance.now();
+    el("toast").classList.toggle("urgent", urgent);
+    this.lastToast = now;
+    this.toastDuration = urgent ? 6500 : 3600;
+    this.urgentToastUntil = urgent ? now + this.toastDuration : 0;
   }
   render(state, selection, mode, buildType, ghost) {
     const touch = navigator.maxTouchPoints > 0;
@@ -86,7 +129,7 @@ export class HUD {
     const own = selected.filter((e) => e.faction === "player");
     const units = own.filter((e) => state.units.includes(e));
     const workers = units.filter((e) => e.type === "worker");
-    el("resources").innerHTML =
+    const resourcesHTML =
       ["wood", "stone", "food", "gold"]
         .map(
           (key) =>
@@ -94,7 +137,13 @@ export class HUD {
         )
         .join("") +
       `<div class="resource"><span class="resource-icon" aria-hidden="true">♙</span><div><b>${population(state)}/${POPULATION_CAP}</b><small>Population</small></div></div>`;
-    el("match-time").textContent = timeText(state.time);
+    if (resourcesHTML !== this.lastResources) {
+      el("resources").innerHTML = resourcesHTML;
+      this.lastResources = resourcesHTML;
+    }
+    const matchTime = timeText(state.time);
+    if (el("match-time").textContent !== matchTime)
+      el("match-time").textContent = matchTime;
     const ready = (type) =>
       state.buildings.some(
         (b) =>
@@ -106,7 +155,7 @@ export class HUD {
     const army = state.units.filter(
       (u) => u.faction === "player" && u.type !== "worker" && u.hp > 0,
     );
-    el("milestones").innerHTML = [
+    const milestonesHTML = [
       [ready("farm"), "Establish a food supply"],
       [ready("barracks"), "Raise your barracks"],
       [army.length >= 8, "Field eight soldiers"],
@@ -116,9 +165,21 @@ export class HUD {
           `<div class="milestone${done ? " done" : ""}"><span>${done ? "✓" : ""}</span>${text}</div>`,
       )
       .join("");
+    if (milestonesHTML !== this.lastMilestones) {
+      el("milestones").innerHTML = milestonesHTML;
+      this.lastMilestones = milestonesHTML;
+    }
     const until = (state.ai?.nextRaid || 180) - state.time;
-    el("raid-timer").textContent =
-      `${state.ai?.wave ? "Next" : "First"} raid in ${timeText(until)}`;
+    const timer = `${state.ai?.wave ? "Next" : "First"} raid in ${timeText(until)}`;
+    if (el("raid-timer").textContent !== timer)
+      el("raid-timer").textContent = timer;
+    const raidText =
+      until <= 30
+        ? `⚑ Raid assembling · ${timeText(until)}`
+        : `${state.ai?.wave ? "Next" : "First"} raid · ${timeText(until)}`;
+    if (el("field-status").textContent !== raidText)
+      el("field-status").textContent = raidText;
+    document.body.classList.toggle("raid-imminent", until <= 30);
     let title = "Your expedition",
       symbol = "⚑",
       detail = "Select a unit or building.",
@@ -151,7 +212,7 @@ export class HUD {
                 idle: "Ready for an assignment",
                 attack: "Defending the settlement",
               }[entity.order.type] || "Following orders"
-            : `${UNIT_TYPES[entity.type]?.range > 2 ? "Ranged" : "Melee"} · ${entity.order.type === "idle" ? "Holding position" : "Following orders"}`;
+            : `${UNIT_TYPES[entity.type]?.range > 2 ? "Ranged" : "Melee"} · ${entity.order.type === "hold" ? "Holding fire line" : entity.order.type === "idle" ? "Ready / defensive" : "Following orders"}`;
       if (entity.queue?.length)
         detail = `Training ${labels[entity.queue[0].unitType]} · ${Math.ceil(entity.queue[0].remaining)}s (${entity.queue.length} queued)`;
       hp = entity.maxHp ? `${Math.ceil(entity.hp)} / ${entity.maxHp}` : "";
@@ -219,20 +280,56 @@ export class HUD {
         .join("");
     } else {
       actions =
-        action("mode-move", "Move", "➤", "Choose a destination", {
-          active: mode === "move",
-          disabled: !units.length,
-        }) +
-        action("mode-attack", "Attack", "⚔", "Target or attack-move", {
-          active: mode === "attack",
-          disabled: !units.length,
-        }) +
-        action("stop", "Stop", "◇", "Hold this position", {
-          disabled: !units.length,
-        }) +
-        action("mode-pan", "Pan", "✥", "Drag to explore", {
-          active: mode === "pan",
-        });
+        action(
+          "mode-move",
+          "Move",
+          "➤",
+          this.compact ? "Destination" : "Choose a destination",
+          {
+            active: mode === "move",
+            disabled: !units.length,
+          },
+        ) +
+        action(
+          "mode-attack",
+          "Attack",
+          "⚔",
+          this.compact ? "Target / advance" : "Target or attack-move",
+          {
+            active: mode === "attack",
+            disabled: !units.length,
+          },
+        ) +
+        action(
+          "hold",
+          "Hold",
+          "⊙",
+          this.compact ? "Range only" : "Fire in range · no pursuit",
+          {
+            label: "Hold Position",
+            active:
+              units.length > 0 && units.every((u) => u.order.type === "hold"),
+            disabled: !units.length,
+          },
+        ) +
+        action(
+          "stop",
+          "Stop",
+          "◇",
+          this.compact ? "Defend freely" : "Cancel · defend freely",
+          {
+            disabled: !units.length,
+          },
+        ) +
+        action(
+          "mode-pan",
+          "Pan",
+          "✥",
+          this.compact ? "Explore" : "Drag to explore",
+          {
+            active: mode === "pan",
+          },
+        );
     }
     if (actions !== this.lastActions) {
       el("actions").innerHTML = actions;
@@ -255,7 +352,7 @@ export class HUD {
                 : touch
                   ? "Select a unit. Drag the field to explore."
                   : "Select a unit. Drag a selection box; WASD to explore.";
-    if (performance.now() - this.lastToast > 3600)
+    if (performance.now() - this.lastToast > (this.toastDuration || 3600))
       el("toast").classList.remove("visible");
   }
 }

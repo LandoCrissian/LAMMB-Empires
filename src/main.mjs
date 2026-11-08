@@ -6,6 +6,24 @@ import { attachControls } from "./input/controls.mjs";
 import { HUD, labels, timeText } from "./ui/hud.mjs";
 
 const $ = (id) => document.getElementById(id);
+const diagnostics = new URLSearchParams(location.search).has("test");
+const timingSamples = { steps: [], render: [], frames: [] };
+function recordTiming(key, value) {
+  if (!diagnostics) return;
+  const values = timingSamples[key];
+  values.push(value);
+  if (values.length > 1000) values.shift();
+}
+function timingSummary(values) {
+  const sorted = [...values].sort((a, b) => a - b);
+  return {
+    count: sorted.length,
+    p50: sorted[Math.floor(sorted.length * 0.5)] || 0,
+    p95: sorted[Math.floor(sorted.length * 0.95)] || 0,
+    max: sorted.at(-1) || 0,
+    over50ms: sorted.filter((v) => v > 50).length,
+  };
+}
 const canvas = $("battlefield"),
   renderer = new Battlefield(canvas);
 let state = createGame(5280),
@@ -229,8 +247,25 @@ function handleAction(action) {
     ghost = null;
     mode = mode === action.slice(5) ? "select" : action.slice(5);
   }
-  if (action === "stop")
-    feedback(command(state, { type: "stop", ids: [...selection] }));
+  if (action === "stop") {
+    const ids = state.units
+      .filter((u) => u.faction === "player" && selection.has(u.id))
+      .map((u) => u.id);
+    if (feedback(command(state, { type: "stop", ids }))) cancel();
+  }
+  if (action === "hold") {
+    const ids = state.units
+      .filter((u) => u.faction === "player" && selection.has(u.id))
+      .map((u) => u.id);
+    if (
+      feedback(command(state, { type: "order", ids, order: { type: "hold" } }))
+    ) {
+      cancel();
+      hud.toast(
+        "Hold Position · fire in range, no pursuit. Stop restores defense.",
+      );
+    }
+  }
   if (action.startsWith("build-")) {
     if (
       !state.units.some((u) => u.type === "worker" && u.faction === "player")
@@ -289,6 +324,7 @@ const controls = attachControls({
   onPause: pause,
   onGroup: group,
   onHome: home,
+  onHold: () => handleAction("hold"),
   enabled: isInteractive,
 });
 $("play").addEventListener("click", () => {
@@ -330,13 +366,29 @@ $("help-dialog").addEventListener("cancel", (e) => {
 document.addEventListener("visibilitychange", () => {
   if (document.hidden && isInteractive()) pause();
 });
-let narrowViewport = window.innerWidth < 600;
-window.addEventListener("resize", () => {
+let resizeQueued = false;
+function syncViewport() {
+  resizeQueued = false;
+  const height = window.visualViewport?.height || window.innerHeight;
+  const width = window.visualViewport?.width || window.innerWidth;
+  document.documentElement.style.setProperty("--app-height", `${height}px`);
+  const compact = width > height && height <= 520 && width <= 1100;
+  document.body.classList.toggle("compact-landscape", compact);
+  hud.setLayout(compact);
+  // Resize cancels unfinished gestures, never selection, commands or world camera.
+  controls.reset();
   renderer.resize();
-  const nextNarrow = window.innerWidth < 600;
-  if (nextNarrow !== narrowViewport) renderer.fit(state, view);
-  narrowViewport = nextNarrow;
-});
+  if (!started) renderer.fit(state, view);
+  refresh();
+}
+function scheduleViewport() {
+  if (resizeQueued) return;
+  resizeQueued = true;
+  requestAnimationFrame(syncViewport);
+}
+window.addEventListener("resize", scheduleViewport);
+window.visualViewport?.addEventListener("resize", scheduleViewport);
+syncViewport();
 const mini = $("minimap"),
   mc = mini.getContext("2d");
 function minimap() {
@@ -380,11 +432,15 @@ function minimap() {
   mc.strokeStyle = "#ead5a4";
   mc.lineWidth = 1;
   mc.beginPath();
+  const top = document.querySelector(".topbar").getBoundingClientRect().bottom;
+  const bottom = document
+    .querySelector(".command-dock")
+    .getBoundingClientRect().top;
   const bounds = [
-    [0, 90],
-    [canvas.clientWidth, 90],
-    [canvas.clientWidth, canvas.clientHeight - 180],
-    [0, canvas.clientHeight - 180],
+    [0, top],
+    [canvas.clientWidth, top],
+    [canvas.clientWidth, bottom],
+    [0, bottom],
   ].map(([x, y]) => renderer.screenToWorld(x, y, view));
   bounds.forEach((p, i) =>
     i ? mc.lineTo(p.x * sx, p.y * sy) : mc.moveTo(p.x * sx, p.y * sy),
@@ -402,28 +458,50 @@ function result() {
   finished = true;
   cancel();
   const victory = state.status === "victory";
+  $("result-dialog").dataset.outcome = state.status;
   $("result-eyebrow").textContent = victory
-    ? "THE FRONTIER IS YOURS"
-    : "THE MARCHES WILL REMEMBER";
+    ? "VICTORY · THE FRONTIER IS YOURS"
+    : "DEFEAT · THE MARCHES WILL REMEMBER";
   $("result-title").textContent = victory
     ? "An empire begins."
     : "Your settlement has fallen.";
   $("result-copy").textContent = victory
     ? "The Ember stronghold has fallen. Your people have secured a home in the Verdant Marches."
     : "The Ember legion destroyed your Town Center. Build earlier, guard your workers, and keep archers behind your front line.";
-  $("result-stats").textContent =
-    `Expedition time ${timeText(state.time)}  ·  Enemy raids ${state.ai?.wave || 0}  ·  Soldiers remaining ${state.units.filter((u) => u.faction === "player" && u.type !== "worker" && u.hp > 0).length}`;
+  $("result-stats").innerHTML = [
+    [timeText(state.time), "Expedition"],
+    [state.ai?.wave || 0, "Enemy raids"],
+    [
+      state.units.filter(
+        (u) => u.faction === "player" && u.type !== "worker" && u.hp > 0,
+      ).length,
+      "Soldiers standing",
+    ],
+  ]
+    .map(
+      ([value, label]) =>
+        `<div><strong>${value}</strong><small>${label}</small></div>`,
+    )
+    .join("");
   $("result-dialog").showModal();
 }
 function frame(now) {
   // A queued animation timestamp can precede a resume handler's performance.now().
   const dt = Math.max(0, Math.min(0.1, (now - lastFrame) / 1000));
+  if (started && !paused) recordTiming("frames", Math.max(0, now - lastFrame));
   lastFrame = now;
   if (isInteractive()) {
     controls.update(dt);
-    clock.advance(dt, (step) => stepGame(state, step));
+    clock.advance(dt, (step) => {
+      const begin = diagnostics ? performance.now() : 0;
+      stepGame(state, step);
+      if (diagnostics) recordTiming("steps", performance.now() - begin);
+    });
   }
+  const drawBegin = diagnostics ? performance.now() : 0;
   renderer.draw(state, view, selection, ghost, now / 1000);
+  if (diagnostics && started)
+    recordTiming("render", performance.now() - drawBegin);
   if (started) {
     hudElapsed += dt;
     if (hudElapsed > 0.15) {
@@ -444,7 +522,14 @@ function frame(now) {
           e.text &&
           !["gather", "hit", "attack", "delivery"].includes(e.type),
       );
-      if (news.length) hud.toast(news[news.length - 1].text);
+      const notice =
+        news.filter((e) => ["warning", "raid"].includes(e.type)).at(-1) ||
+        news.at(-1);
+      if (notice)
+        hud.toast(notice.text, {
+          urgent: ["warning", "raid"].includes(notice.type),
+          passive: true,
+        });
       if (state.events.length)
         observedEvent = state.events[state.events.length - 1].id;
     }
@@ -452,11 +537,24 @@ function frame(now) {
   }
   requestAnimationFrame(frame);
 }
-if (new URLSearchParams(location.search).has("test")) {
+if (diagnostics) {
   window.frontierDebug = Object.freeze({
     snapshot: () => structuredClone(state),
     worldToScreen: (x, y) => renderer.worldToScreen(x, y, view),
     camera: () => ({ ...view }),
+    selected: () => [...selection],
+    mode: () => mode,
+    screenToWorld: (x, y) => renderer.screenToWorld(x, y, view),
+    performanceMetrics: () => ({
+      stepMs: timingSummary(timingSamples.steps),
+      renderMs: timingSummary(timingSamples.render),
+      frameIntervalMs: timingSummary(timingSamples.frames),
+      viewport: {
+        width: renderer.width,
+        height: renderer.height,
+        dpr: renderer.dpr,
+      },
+    }),
   });
 }
 requestAnimationFrame(frame);

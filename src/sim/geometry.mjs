@@ -26,6 +26,6 @@ export function event(state, type, x, y, text, extra = {}) {
   const e = { id: state.nextEventId++, time: state.time, type, x, y, ...extra };
   if (text) e.text = text;
   state.events.push(e);
-  if (state.events.length > 30)
-    state.events.splice(0, state.events.length - 30);
+  if (state.events.length > 64)
+    state.events.splice(0, state.events.length - 64);
 }

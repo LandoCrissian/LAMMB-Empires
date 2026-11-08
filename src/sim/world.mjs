@@ -8,7 +8,14 @@ import {
   STEP,
 } from "./config.mjs";
 import { byId, distance, entityCenter, event } from "./geometry.mjs";
-import { blocked, clearPath, nearestOpen, reachable } from "./movement.mjs";
+import {
+  blocked,
+  clearPath,
+  nearestOpen,
+  reachable,
+  separateUnits,
+} from "./movement.mjs";
+import { formationDestinations } from "./formations.mjs";
 import { makeUnit, updateWorker, updateBuildings } from "./economy.mjs";
 import { updateCombatUnit, updateDefenses } from "./combat.mjs";
 import { updateAI } from "./ai.mjs";
@@ -347,9 +354,15 @@ export function command(state, action) {
     const order = action.type === "stop" ? { type: "idle" } : action.order;
     if (
       !order ||
-      !["idle", "move", "attackMove", "attack", "gather", "build"].includes(
-        order.type,
-      )
+      ![
+        "idle",
+        "hold",
+        "move",
+        "attackMove",
+        "attack",
+        "gather",
+        "build",
+      ].includes(order.type)
     )
       return fail("Invalid order.");
     let target;
@@ -396,6 +409,14 @@ export function command(state, action) {
       point = nearestOpen(state, order.x, order.y);
       if (!point) return fail("No open destination.");
     }
+    const destinations =
+      point && units.length > 1
+        ? new Map(
+            formationDestinations(state, units, point).map((p) => [p.id, p]),
+          )
+        : null;
+    if (destinations && destinations.size !== units.length)
+      return fail("The group cannot reach that formation destination.");
     for (let i = 0; i < units.length; i++) {
       const u = units[i];
       if (["gather", "build"].includes(order.type) && u.type !== "worker")
@@ -403,17 +424,14 @@ export function command(state, action) {
       u.order = { ...order };
       u.delivering = false;
       clearPath(u);
+      if (order.type === "hold") {
+        u.order.x = u.x;
+        u.order.y = u.y;
+      }
       if (order.type === "gather")
         u.gatherResource = target.type === "farm" ? "food" : target.type;
       if (point) {
-        const formation =
-          units.length > 1
-            ? nearestOpen(
-                state,
-                point.x + (i % 4) - Math.min(3, units.length - 1) / 2,
-                point.y + Math.floor(i / 4),
-              )
-            : point;
+        const formation = destinations?.get(u.id) || point;
         u.order.x = formation.x;
         u.order.y = formation.y;
       }
@@ -461,6 +479,7 @@ export function stepGame(state, dt = STEP) {
   }
   updateBuildings(state, dt);
   updateDefenses(state, dt);
+  separateUnits(state, dt);
   finish(state);
   state.units = state.units.filter((u) => u.hp > 0);
   state.buildings = state.buildings.filter((b) => b.hp > 0);
