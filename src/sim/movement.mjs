@@ -269,7 +269,12 @@ export function separateUnits(state, dt) {
         const a = units[i],
           b = units[j];
         const desired =
-          a.type === "worker" && b.type === "worker" ? 0.48 : 0.66;
+          a.type === "ram" || b.type === "ram"
+            ? (a.type === "ram" ? 0.44 : 0.33) +
+              (b.type === "ram" ? 0.44 : 0.33)
+            : a.type === "worker" && b.type === "worker"
+              ? 0.48
+              : 0.66;
         let dx = b.x - a.x,
           dy = b.y - a.y,
           length = Math.hypot(dx, dy);

@@ -1,6 +1,6 @@
 {
   "name": "lammb-empires",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "LAMMB Empires browser RTS",
@@ -11,8 +11,9 @@
     "check": "node scripts/check.mjs",
     "test:browser": "playwright test",
     "test:balance": "node scripts/balance-check.mjs",
+    "test:siege": "node scripts/siege-balance-check.mjs",
     "test:performance": "node scripts/performance.mjs",
-    "verify": "npm run check && npm test && npm run test:balance && npm run build && npm run test:browser"
+    "verify": "npm run check && npm test && npm run test:balance && npm run test:siege && npm run build && npm run test:browser"
   },
   "engines": {
     "node": ">=22"

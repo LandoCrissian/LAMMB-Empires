@@ -1,10 +1,11 @@
 /** Reproducible development benchmark; timings are measurements, never gameplay state. */
 import { performance } from "node:perf_hooks";
 import os from "node:os";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, readFile } from "node:fs/promises";
 import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
 import { playSkirmish } from "./balance-check.mjs";
+import { playSiegeSkirmish } from "./siege-balance-check.mjs";
 import { command, stepGame } from "../src/sim/world.mjs";
 import {
   enableMovementDiagnostics,
@@ -26,6 +27,12 @@ function summary(values) {
 }
 
 const fixture = playSkirmish(5280, 240).state;
+// A legal ram hit at 374.95 seconds keeps the new structure-impact effect visible.
+const siegeFixture = playSiegeSkirmish(5280, 375).state;
+if (!siegeFixture.units.some((u) => u.faction === "player" && u.type === "ram"))
+  throw new Error(
+    "The legal siege performance fixture must contain a live trained ram.",
+  );
 if (fixture.status !== "playing")
   throw new Error(
     "The legal240-second performance fixture must be a live match.",
@@ -35,6 +42,8 @@ resetMovementDiagnostics();
 const stepTimes = [],
   orderTimes = [];
 let maximumUnits = 0;
+let acceptedOrders = 0,
+  rejectedOrders = 0;
 for (let repeat = 0; repeat < 10; repeat++) {
   const state = structuredClone(fixture);
   const army = state.units
@@ -43,11 +52,13 @@ for (let repeat = 0; repeat < 10; repeat++) {
   for (let tick = 0; tick < 400; tick++) {
     if (tick % 100 === 0) {
       const started = performance.now();
-      command(state, {
+      const issued = command(state, {
         type: "order",
         ids: army,
         order: { type: tick % 200 ? "attackMove" : "move", x: 26.5, y: 13.5 },
       });
+      if (issued.ok) acceptedOrders++;
+      else rejectedOrders++;
       orderTimes.push(performance.now() - started);
     }
     const started = performance.now();
@@ -57,6 +68,41 @@ for (let repeat = 0; repeat < 10; repeat++) {
   }
 }
 const movement = getMovementDiagnostics();
+enableMovementDiagnostics(false);
+
+enableMovementDiagnostics(true);
+resetMovementDiagnostics();
+const siegeStepTimes = [],
+  siegeOrderTimes = [];
+let siegeMaximumUnits = 0;
+let siegeAcceptedOrders = 0,
+  siegeRejectedOrders = 0;
+for (let repeat = 0; repeat < 10; repeat++) {
+  const state = structuredClone(siegeFixture);
+  for (let tick = 0; tick < 400 && state.status === "playing"; tick++) {
+    if (tick % 100 === 0) {
+      const start = performance.now();
+      const army = state.units
+        .filter(
+          (u) => u.faction === "player" && u.type !== "worker" && u.hp > 0,
+        )
+        .map((u) => u.id);
+      const issued = command(state, {
+        type: "order",
+        ids: army,
+        order: { type: tick % 200 ? "attackMove" : "move", x: 26.5, y: 13.5 },
+      });
+      if (issued.ok) siegeAcceptedOrders++;
+      else siegeRejectedOrders++;
+      siegeOrderTimes.push(performance.now() - start);
+    }
+    const start = performance.now();
+    stepGame(state);
+    siegeStepTimes.push(performance.now() - start);
+    siegeMaximumUnits = Math.max(siegeMaximumUnits, state.units.length);
+  }
+}
+const siegeMovement = getMovementDiagnostics();
 enableMovementDiagnostics(false);
 
 const base = process.env.FRONTIER_BASE_URL || "http://127.0.0.1:4173";
@@ -96,9 +142,26 @@ const report = {
     fixedStepSeconds: 0.05,
     steps: summary(stepTimes),
     groupOrders: summary(orderTimes),
+    groupOrderResults: { accepted: acceptedOrders, rejected: rejectedOrders },
     movement,
   },
   browser: [],
+  baselineTask003: JSON.parse(
+    await readFile("docs/performance/task003.json", "utf8"),
+  ),
+  siegeFixture: {
+    time: siegeFixture.time,
+    units: siegeFixture.units.length,
+    rams: siegeFixture.units.filter((u) => u.type === "ram").length,
+    maximumUnits: siegeMaximumUnits,
+    steps: summary(siegeStepTimes),
+    groupOrders: summary(siegeOrderTimes),
+    groupOrderResults: {
+      accepted: siegeAcceptedOrders,
+      rejected: siegeRejectedOrders,
+    },
+    movement: siegeMovement,
+  },
 };
 const browser = await chromium.launch();
 report.environment.chromium = browser.version();
@@ -142,88 +205,153 @@ try {
       }),
     );
     await page.goto(`${base}/benchmark`);
-    const render = await page.evaluate(async (state) => {
-      const { Battlefield } = await import("/src/render/battlefield.mjs");
-      const renderer = new Battlefield(document.querySelector("canvas"));
-      const view = { x: 20, y: 19, zoom: innerWidth < 1000 ? 0.8 : 1.1 };
-      const firstStart = performance.now();
-      renderer.draw(state, view, new Set(), null, 0);
-      const coldDrawMs = performance.now() - firstStart;
-      const samples = [],
-        intervals = [];
-      let previous;
-      await new Promise((resolve) => {
-        const frame = (now) => {
-          if (previous !== undefined) intervals.push(now - previous);
-          previous = now;
-          const start = performance.now();
-          renderer.draw(
-            state,
-            view,
-            new Set(
-              state.units
-                .filter((u) => u.faction === "player")
-                .map((u) => u.id),
-            ),
-            null,
-            now / 1000,
-          );
-          samples.push(performance.now() - start);
-          if (samples.length < 240) requestAnimationFrame(frame);
-          else resolve();
+    const render = await page.evaluate(
+      async ({ state, siegeState }) => {
+        const { Battlefield } = await import("/src/render/battlefield.mjs");
+        const renderer = new Battlefield(document.querySelector("canvas"));
+        const view = { x: 20, y: 19, zoom: innerWidth < 1000 ? 0.8 : 1.1 };
+        const firstStart = performance.now();
+        renderer.draw(state, view, new Set(), null, 0);
+        const coldDrawMs = performance.now() - firstStart;
+        const terrainFrameCosts = [];
+        const preparationStart = performance.now();
+        if (renderer.terrainStatus && !renderer.terrainStatus().ready)
+          await new Promise((resolve) => {
+            const frame = (now) => {
+              const start = performance.now();
+              renderer.draw(state, view, new Set(), null, now / 1000);
+              terrainFrameCosts.push(performance.now() - start);
+              if (renderer.terrainStatus().ready) resolve();
+              else requestAnimationFrame(frame);
+            };
+            requestAnimationFrame(frame);
+          });
+        const terrainPreparation = {
+          ...(renderer.terrainStatus?.() || { ready: true, phased: false }),
+          wallAfterFirstDrawMs: performance.now() - preparationStart,
+          frameCosts: terrainFrameCosts,
         };
-        requestAnimationFrame(frame);
-      });
-      // Deliberately controlled worst-case visual fixture. It is not a legal-match result.
-      // Keep the same map reference so this measures warm combat effects separately from terrain setup.
-      state.events = Array.from({ length: 64 }, (_, i) => ({
-        id: 100000 + i,
-        time: state.time - 0.12,
-        type: i % 8 === 0 ? "death" : "attack",
-        x: 16 + (i % 8),
-        y: 15 + Math.floor(i / 8),
-        targetX: 17 + (i % 8),
-        targetY: 16 + Math.floor(i / 8),
-        ranged: true,
-        damage: 18,
-        faction: i % 2 ? "enemy" : "player",
-        entityType: i % 16 === 0 ? "tower" : "infantry",
-        width: i % 16 === 0 ? 1 : 0,
-      }));
-      for (const unit of state.units) unit.lastHitAt = state.time - 0.12;
-      const denseSamples = [],
-        denseIntervals = [];
-      previous = undefined;
-      await new Promise((resolve) => {
-        const frame = (now) => {
-          if (previous !== undefined) denseIntervals.push(now - previous);
-          previous = now;
-          const start = performance.now();
-          renderer.draw(
-            state,
-            view,
-            new Set(
-              state.units
-                .filter((u) => u.faction === "player")
-                .map((u) => u.id),
-            ),
-            null,
-            now / 1000,
-          );
-          denseSamples.push(performance.now() - start);
-          if (denseSamples.length < 120) requestAnimationFrame(frame);
-          else resolve();
+        const samples = [],
+          intervals = [];
+        let previous;
+        await new Promise((resolve) => {
+          const frame = (now) => {
+            if (previous !== undefined) intervals.push(now - previous);
+            previous = now;
+            const start = performance.now();
+            renderer.draw(
+              state,
+              view,
+              new Set(
+                state.units
+                  .filter((u) => u.faction === "player")
+                  .map((u) => u.id),
+              ),
+              null,
+              now / 1000,
+            );
+            samples.push(performance.now() - start);
+            if (samples.length < 240) requestAnimationFrame(frame);
+            else resolve();
+          };
+          requestAnimationFrame(frame);
+        });
+        // Deliberately controlled worst-case visual fixture. It is not a legal-match result.
+        // Keep the same map reference so this measures warm combat effects separately from terrain setup.
+        state.events = Array.from({ length: 64 }, (_, i) => ({
+          id: 100000 + i,
+          time: state.time - 0.12,
+          type: i % 8 === 0 ? "death" : "attack",
+          x: 16 + (i % 8),
+          y: 15 + Math.floor(i / 8),
+          targetX: 17 + (i % 8),
+          targetY: 16 + Math.floor(i / 8),
+          ranged: true,
+          damage: 18,
+          faction: i % 2 ? "enemy" : "player",
+          entityType: i % 16 === 0 ? "tower" : "infantry",
+          width: i % 16 === 0 ? 1 : 0,
+        }));
+        for (const unit of state.units) unit.lastHitAt = state.time - 0.12;
+        const denseSamples = [],
+          denseIntervals = [];
+        previous = undefined;
+        await new Promise((resolve) => {
+          const frame = (now) => {
+            if (previous !== undefined) denseIntervals.push(now - previous);
+            previous = now;
+            const start = performance.now();
+            renderer.draw(
+              state,
+              view,
+              new Set(
+                state.units
+                  .filter((u) => u.faction === "player")
+                  .map((u) => u.id),
+              ),
+              null,
+              now / 1000,
+            );
+            denseSamples.push(performance.now() - start);
+            if (denseSamples.length < 120) requestAnimationFrame(frame);
+            else resolve();
+          };
+          requestAnimationFrame(frame);
+        });
+        const siegeSamples = [];
+        const siegeView = { x: 25, y: 16, zoom: innerWidth < 1000 ? 0.8 : 1.1 };
+        renderer.draw(siegeState, siegeView, new Set(), null, 0);
+        if (renderer.terrainStatus && !renderer.terrainStatus().ready)
+          await new Promise((resolve) => {
+            const frame = (now) => {
+              renderer.draw(siegeState, siegeView, new Set(), null, now / 1000);
+              if (renderer.terrainStatus().ready) resolve();
+              else requestAnimationFrame(frame);
+            };
+            requestAnimationFrame(frame);
+          });
+        await new Promise((resolve) => {
+          const frame = (now) => {
+            const start = performance.now();
+            renderer.draw(
+              siegeState,
+              siegeView,
+              new Set(
+                siegeState.units
+                  .filter((u) => u.faction === "player")
+                  .map((u) => u.id),
+              ),
+              null,
+              now / 1000,
+            );
+            siegeSamples.push(performance.now() - start);
+            if (siegeSamples.length < 120) requestAnimationFrame(frame);
+            else resolve();
+          };
+          requestAnimationFrame(frame);
+        });
+        return {
+          coldDrawMs,
+          terrainPreparation,
+          samples,
+          intervals,
+          denseSamples,
+          denseIntervals,
+          siegeSamples,
         };
-        requestAnimationFrame(frame);
-      });
-      return { coldDrawMs, samples, intervals, denseSamples, denseIntervals };
-    }, fixture);
+      },
+      { state: fixture, siegeState: siegeFixture },
+    );
     report.browser.push({
       ...config,
       live,
       armyFixture: {
         units: fixture.units.length,
         coldDrawMs: render.coldDrawMs,
+        terrainPreparation: {
+          ...render.terrainPreparation,
+          frameCosts: summary(render.terrainPreparation.frameCosts),
+        },
         draw: summary(render.samples),
         frameInterval: summary(render.intervals),
         intervalsOver50Ms: render.intervals.filter((n) => n > 50).length,
@@ -236,6 +364,11 @@ try {
         frameInterval: summary(render.denseIntervals),
         intervalsOver50Ms: render.denseIntervals.filter((n) => n > 50).length,
       },
+      siegeArmyFixture: {
+        units: siegeFixture.units.length,
+        rams: siegeFixture.units.filter((u) => u.type === "ram").length,
+        draw: summary(render.siegeSamples),
+      },
     });
     await context.close();
   }
@@ -244,8 +377,39 @@ try {
   if (server) server.kill();
 }
 await mkdir("docs/performance", { recursive: true });
+report.comparisonToTask003 = {
+  note: "Same host and equivalent conventional240-second/29-unit scenario. Timings are single-run measurements and can vary; siege375-second fixture is a different workload and reported separately.",
+  simulationStepP95Ms: {
+    task003: report.baselineTask003.simulation.steps.p95Ms,
+    task004: report.simulation.steps.p95Ms,
+  },
+  groupOrderP95Ms: {
+    task003: report.baselineTask003.simulation.groupOrders.p95Ms,
+    task004: report.simulation.groupOrders.p95Ms,
+  },
+  browser: report.browser.map((current) => {
+    const prior = report.baselineTask003.browser.find(
+      (b) => b.name === current.name,
+    );
+    return {
+      name: current.name,
+      liveDrawP95Ms: {
+        task003: prior?.live.metrics.renderMs.p95,
+        task004: current.live.metrics.renderMs.p95,
+      },
+      warmArmyDrawP95Ms: {
+        task003: prior?.armyFixture.draw.p95Ms,
+        task004: current.armyFixture.draw.p95Ms,
+      },
+      coldDrawMs: {
+        task003: prior?.armyFixture.coldDrawMs,
+        task004: current.armyFixture.coldDrawMs,
+      },
+    };
+  }),
+};
 await writeFile(
-  "docs/performance/task003.json",
+  "docs/performance/task004.json",
   `${JSON.stringify(report, null, 2)}\n`,
 );
 console.log(JSON.stringify(report, null, 2));

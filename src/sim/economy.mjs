@@ -1,6 +1,7 @@
 import { UNIT_TYPES, BUILDING_TYPES } from "./config.mjs";
 import { byId, distance, event, entityCenter } from "./geometry.mjs";
-import { moveToward, spawnPoint, clearPath } from "./movement.mjs";
+import { moveToward, clearPath } from "./movement.mjs";
+import { productionSpawnPoint, applyProductionRally } from "./rally.mjs";
 
 // Keep resource transfers at a shared precision so repeated fractional gathers
 // cannot leave a full load just below its capacity or an integer purchase cost.
@@ -181,7 +182,7 @@ export function updateBuildings(state, dt) {
     const item = b.queue[0];
     item.remaining = Math.max(0, item.remaining - dt);
     if (item.remaining <= 1e-8) {
-      const point = spawnPoint(state, b.x + b.width / 2, b.y + b.height + 1);
+      const point = productionSpawnPoint(state, b, item.unitType);
       if (point) {
         const unit = makeUnit(
           state,
@@ -191,12 +192,24 @@ export function updateBuildings(state, dt) {
           point.y,
         );
         b.queue.shift();
+        b.spawnBlocked = false;
+        applyProductionRally(state, b, unit);
         event(
           state,
           "trained",
           unit.x,
           unit.y,
           `${UNIT_TYPES[unit.type].label} ready`,
+          { unitId: unit.id, unitType: unit.type, buildingId: b.id },
+        );
+      } else if (!b.spawnBlocked) {
+        b.spawnBlocked = true;
+        event(
+          state,
+          "productionBlocked",
+          b.x,
+          b.y,
+          "Production exit crowded or blocked. Clear space near the building.",
         );
       }
     }

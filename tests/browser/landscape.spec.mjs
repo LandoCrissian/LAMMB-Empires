@@ -122,12 +122,16 @@ async function checkCommands(page) {
   for (const name of ["Move", "Attack", "Hold Position", "Stop", "Pan"])
     await reachable(button(page, name), { minimum: 44 });
   await button(page, "Build").tap();
-  for (const name of ["Farm", "Barracks", "Watchtower"])
+  for (const name of ["Farm", "Barracks", "Watchtower", "Siege Workshop"])
     await reachable(button(page, name), { minimum: 44 });
   await button(page, "Recruit").tap();
-  for (const name of ["Worker", "Swordsman", "Archer"])
+  for (const name of ["Worker", "Swordsman", "Archer", "Siege Ram"])
     await reachable(button(page, name), { minimum: 44 });
   await button(page, "Command").tap();
+  await fieldTap(page, 9.5, 25.5);
+  for (const name of ["Set Rally Point", "Clear Rally"])
+    await reachable(button(page, name), { minimum: 44 });
+  await button(page, "Army").tap();
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth <= window.innerWidth,
@@ -165,7 +169,7 @@ for (const viewport of viewports) {
       width: viewport.width,
       height: viewport.height,
     });
-    await mkdir("docs/screenshots/task003", { recursive: true });
+    await mkdir("docs/screenshots/task004", { recursive: true });
     await page.goto("/?test=1");
     await reachable(button(page, "Play LAMMB Empires"), { minimum: 44 });
     await expect(page.locator("#entry a")).toHaveAttribute(
@@ -174,7 +178,7 @@ for (const viewport of viewports) {
     );
     await reachable(page.locator("#entry a"));
     await page.screenshot({
-      path: `docs/screenshots/task003/${info.project.name}-${viewport.label}-entry.png`,
+      path: `docs/screenshots/task004/${info.project.name}-${viewport.label}-entry.png`,
     });
     await button(page, "Play LAMMB Empires").tap();
     await checkCommands(page);
@@ -243,7 +247,7 @@ for (const viewport of viewports) {
       timeout: 7000,
     });
     await page.screenshot({
-      path: `docs/screenshots/task003/${info.project.name}-${viewport.label}-active.png`,
+      path: `docs/screenshots/task004/${info.project.name}-${viewport.label}-active.png`,
     });
   });
 }
@@ -361,7 +365,7 @@ test("portrait landscape portrait preserves a live expedition and accepts tactic
     )
     .toBe(true);
   await page.screenshot({
-    path: `docs/screenshots/task003/${info.project.name}-rotation-landscape.png`,
+    path: `docs/screenshots/task004/${info.project.name}-rotation-landscape.png`,
   });
   await button(page, "Pause").tap();
   const landscape = {
@@ -378,7 +382,7 @@ test("portrait landscape portrait preserves a live expedition and accepts tactic
     .poll(async () => (await snap(page)).time)
     .toBeGreaterThan(landscape.state.time);
   await page.screenshot({
-    path: `docs/screenshots/task003/${info.project.name}-rotation-portrait.png`,
+    path: `docs/screenshots/task004/${info.project.name}-rotation-portrait.png`,
   });
   await button(page, "Pause").tap();
   await page.locator("#restart-paused").tap();
@@ -515,7 +519,7 @@ test("compact landscape controls respect simulated notch and home indicator inse
   }
 });
 
-test("landscape touch pan and pinch cannot become army or placement orders", async ({
+test("landscape touch pan and pinch cannot become army, placement or rally orders", async ({
   page,
   context,
   browserName,
@@ -579,4 +583,49 @@ test("landscape touch pan and pinch cannot become army or placement orders", asy
   expect((await snap(page)).resources).toEqual(resources);
   await button(page, "Cancel").tap();
   expect((await snap(page)).buildings).toHaveLength(count);
+  await button(page, "Center settlement").tap();
+  await fieldTap(page, 9.5, 25.5);
+  await button(page, "Command").tap();
+  await button(page, "Set Rally Point").tap();
+  const producer = (await snap(page)).buildings.find(
+    (b) => b.type === "townCenter" && b.faction === "player",
+  );
+  const oldRally = producer.rally ?? null;
+  const rallyGesture = await context.newCDPSession(page);
+  await rallyGesture.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [{ x: 390, y: 165, id: 1 }],
+  });
+  await rallyGesture.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [{ x: 445, y: 180, id: 1 }],
+  });
+  await rallyGesture.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await rallyGesture.send("Input.dispatchTouchEvent", {
+    type: "touchStart",
+    touchPoints: [
+      { x: 340, y: 170, id: 1 },
+      { x: 480, y: 170, id: 2 },
+    ],
+  });
+  await rallyGesture.send("Input.dispatchTouchEvent", {
+    type: "touchMove",
+    touchPoints: [
+      { x: 300, y: 170, id: 1 },
+      { x: 520, y: 170, id: 2 },
+    ],
+  });
+  await rallyGesture.send("Input.dispatchTouchEvent", {
+    type: "touchEnd",
+    touchPoints: [],
+  });
+  await rallyGesture.detach();
+  expect(
+    (await snap(page)).buildings.find((b) => b.id === producer.id).rally ??
+      null,
+  ).toEqual(oldRally);
+  await button(page, "Cancel").tap();
 });

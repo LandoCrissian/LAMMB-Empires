@@ -8,7 +8,11 @@ import { lineOfSight } from "./combat.mjs";
 const DECISION_INTERVAL = 0.75;
 const military = (unit) => unit.type !== "worker" && unit.hp > 0;
 const importance = (building) =>
-  building.type === "barracks" ? 3 : building.type === "townCenter" ? 2 : 1;
+  ["barracks", "workshop"].includes(building.type)
+    ? 3
+    : building.type === "townCenter"
+      ? 2
+      : 1;
 
 function groupOrder(state, units, destination) {
   for (const point of formationDestinations(state, units, destination)) {
@@ -27,6 +31,7 @@ function coordinateDefense(state, guards, structures) {
     for (const opponent of state.units) {
       if (
         opponent.faction !== "player" ||
+        opponent.type === "ram" ||
         opponent.hp <= 0 ||
         distanceTo(opponent, building) > 6 ||
         !lineOfSight(state, building, opponent)
@@ -47,6 +52,7 @@ function coordinateDefense(state, guards, structures) {
   );
   for (const guard of guards) {
     guard.defenseTargetId = null;
+    guard.siegeStandGround = false;
     if (guard.raiding) continue;
     const report = reports.find(
       ({ building, opponent }) =>
@@ -62,6 +68,89 @@ function coordinateDefense(state, guards, structures) {
       guard.aiRole = "guard";
       guard.defendingId = null;
     }
+  }
+}
+
+// Siege information is shared only after a local guard or structure sees it.
+// A small melee detachment can punish exposed equipment without dragging every
+// defender out of the settlement or generating a new counter army.
+function coordinateSiegeDefense(state, guards, structures) {
+  const defenders = guards.filter((unit) => !unit.raiding);
+  const interceptBudget = Math.min(
+    3,
+    Math.max(1, Math.floor(defenders.length / 2)),
+  );
+  const visibleToDefense = (target) =>
+    structures.some(
+      (building) =>
+        distanceTo(target, building) <= 6 &&
+        lineOfSight(state, building, target),
+    ) ||
+    defenders.some(
+      (guard) =>
+        distance(guard, target) <= UNIT_TYPES[guard.type].sight &&
+        lineOfSight(state, guard, target),
+    );
+  const threats = state.units.filter(
+    (unit) =>
+      unit.faction === "player" &&
+      unit.type === "ram" &&
+      unit.hp > 0 &&
+      visibleToDefense(unit),
+  );
+  threats.sort((a, b) => {
+    const nearest = (ram) =>
+      Math.min(
+        ...structures.map((building) => distanceTo(ram, building)),
+        Infinity,
+      );
+    return nearest(a) - nearest(b) || a.id.localeCompare(b.id);
+  });
+  let assigned = 0;
+  for (const ram of threats) {
+    const escorts = state.units.filter(
+      (unit) =>
+        unit.faction === "player" &&
+        unit.type !== "worker" &&
+        unit.type !== "ram" &&
+        unit.hp > 0 &&
+        distance(unit, ram) <= 2.6 &&
+        visibleToDefense(unit),
+    );
+    if (escorts.length >= 2) continue;
+    const available = defenders.filter(
+      (guard) =>
+        UNIT_TYPES[guard.type].range < 2 &&
+        guard.aiRole !== "intercept" &&
+        distance(guard, ram) <= 8 &&
+        (!guard.home || distance(guard.home, ram) <= 10),
+    );
+    available.sort(
+      (a, b) => distance(a, ram) - distance(b, ram) || a.id.localeCompare(b.id),
+    );
+    const count = Math.min(interceptBudget - assigned, available.length);
+    for (const guard of available.slice(0, count)) {
+      guard.defenseTargetId = ram.id;
+      guard.aiRole = "intercept";
+      guard.defendingId =
+        structures
+          .slice()
+          .sort((a, b) => distance(ram, a) - distance(ram, b))[0]?.id || null;
+      assigned++;
+    }
+  }
+  if (assigned)
+    for (const guard of defenders)
+      if (guard.aiRole !== "intercept") guard.siegeStandGround = true;
+  if (assigned && state.time >= (state.ai.nextSiegeNotice || 0)) {
+    state.ai.nextSiegeNotice = state.time + 15;
+    event(
+      state,
+      "siegeWarning",
+      threats[0].x,
+      threats[0].y,
+      "Ember infantry are intercepting exposed siege equipment.",
+    );
   }
 }
 
@@ -165,6 +254,7 @@ export function updateAI(state) {
   if (state.time >= (ai.nextDecision || 0)) {
     ai.nextDecision = state.time + DECISION_INTERVAL;
     coordinateDefense(state, guards, structures);
+    coordinateSiegeDefense(state, guards, structures);
     coordinateRaid(state, guards);
   }
   if (!ai.warned && state.time >= ai.nextRaid - 30) {

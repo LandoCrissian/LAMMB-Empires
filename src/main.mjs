@@ -1,5 +1,11 @@
-import { createGame, stepGame, command, placement } from "./sim/world.mjs";
-import { BUILDING_TYPES } from "./sim/config.mjs";
+import {
+  createGame,
+  stepGame,
+  command,
+  placement,
+  rallyPlacement,
+} from "./sim/world.mjs";
+import { BUILDING_TYPES, UNIT_TYPES } from "./sim/config.mjs";
 import { fixedStepClock } from "./sim/rules.mjs";
 import { Battlefield } from "./render/battlefield.mjs";
 import { attachControls } from "./input/controls.mjs";
@@ -38,6 +44,8 @@ let mode = "select",
   observedEvent = 0,
   finished = false;
 const view = { x: 8, y: 24, zoom: 1 };
+let rallyBuildingId = null,
+  rallyGhost = null;
 renderer.resize();
 renderer.fit(state, view);
 const clock = fixedStepClock({ step: 0.05, maxSteps: 5 });
@@ -48,7 +56,8 @@ const isInteractive = () =>
   state.status === "playing" &&
   !document.querySelector("dialog[open]");
 function refresh() {
-  hud.render(state, selection, mode, buildType, ghost);
+  document.body.dataset.commandMode = mode;
+  hud.render(state, selection, mode, buildType, ghost, rallyGhost);
 }
 function feedback(result, success) {
   if (!result?.ok) hud.toast(result?.reason || "That order is unavailable.");
@@ -61,6 +70,22 @@ function setSelection(ids) {
   mode = "select";
   buildType = null;
   ghost = null;
+  rallyBuildingId = null;
+  rallyGhost = null;
+  if (
+    ids.size === 1 &&
+    state.buildings.some(
+      (b) =>
+        ids.has(b.id) &&
+        b.faction === "player" &&
+        ["townCenter", "barracks", "workshop"].includes(b.type),
+    )
+  ) {
+    hud.tab = "orders";
+    document
+      .querySelectorAll("[data-tab]")
+      .forEach((b) => b.classList.toggle("active", b.dataset.tab === "orders"));
+  }
   refresh();
 }
 function home() {
@@ -90,6 +115,8 @@ function cancel() {
   mode = "select";
   buildType = null;
   ghost = null;
+  rallyBuildingId = null;
+  rallyGhost = null;
   refresh();
 }
 function preview(p) {
@@ -114,6 +141,40 @@ function build(p, touch = false) {
     return;
   }
   confirmBuild();
+}
+function previewRally(p, entity = null) {
+  if (mode !== "rally" || !rallyBuildingId) return;
+  const building = state.buildings.find((b) => b.id === rallyBuildingId);
+  const economic =
+    building?.type === "townCenter" &&
+    entity &&
+    (state.nodes.includes(entity) || entity.type === "farm");
+  const proposal = {
+    x: p.x,
+    y: p.y,
+    ...(economic ? { targetId: entity.id } : {}),
+  };
+  const result = rallyPlacement(state, rallyBuildingId, proposal);
+  rallyGhost = {
+    buildingId: rallyBuildingId,
+    x: p.x,
+    y: p.y,
+    targetId: proposal.targetId,
+    ...result,
+    ...(result.rally || {}),
+  };
+  refresh();
+}
+function confirmRally() {
+  if (!rallyBuildingId || !rallyGhost) return;
+  const result = command(state, {
+    type: "setRally",
+    buildingId: rallyBuildingId,
+    x: rallyGhost.x,
+    y: rallyGhost.y,
+    ...(rallyGhost.targetId ? { targetId: rallyGhost.targetId } : {}),
+  });
+  if (feedback(result, "Production rally point set.")) cancel();
 }
 function confirmBuild() {
   if (!buildType || !ghost) return;
@@ -215,6 +276,8 @@ function restart() {
   mode = "select";
   buildType = null;
   ghost = null;
+  rallyBuildingId = null;
+  rallyGhost = null;
   paused = false;
   finished = false;
   observedEvent = 0;
@@ -236,15 +299,52 @@ function handleAction(action) {
     return;
   }
   if (!isInteractive()) return;
+  if (action.startsWith("tab-")) {
+    cancel();
+    return;
+  }
   if (action === "workers" || action === "army") group(action);
   if (action === "home") home();
   if (action === "zoom-in") view.zoom = Math.min(2.3, view.zoom * 1.2);
   if (action === "zoom-out") view.zoom = Math.max(0.45, view.zoom / 1.2);
   if (action === "cancel") cancel();
   if (action === "confirm-build") confirmBuild();
+  if (action === "confirm-rally") confirmRally();
+  if (action === "set-rally") {
+    const selected = state.buildings.filter(
+      (b) =>
+        selection.has(b.id) &&
+        b.faction === "player" &&
+        b.progress === 1 &&
+        ["townCenter", "barracks", "workshop"].includes(b.type),
+    );
+    if (selected.length !== 1) {
+      hud.toast("Select one completed production building.");
+      return;
+    }
+    mode = "rally";
+    buildType = null;
+    ghost = null;
+    rallyBuildingId = selected[0].id;
+    rallyGhost = null;
+  }
+  if (action === "clear-rally") {
+    const building = state.buildings.find(
+      (b) => selection.has(b.id) && b.faction === "player",
+    );
+    if (
+      feedback(
+        command(state, { type: "clearRally", buildingId: building?.id }),
+        "Production rally cleared.",
+      )
+    )
+      cancel();
+  }
   if (action.startsWith("mode-")) {
     buildType = null;
     ghost = null;
+    rallyBuildingId = null;
+    rallyGhost = null;
     mode = mode === action.slice(5) ? "select" : action.slice(5);
   }
   if (action === "stop") {
@@ -279,7 +379,9 @@ function handleAction(action) {
   }
   if (action.startsWith("train-")) {
     const unitType = action.slice(6),
-      kind = unitType === "worker" ? "townCenter" : "barracks";
+      kind =
+        UNIT_TYPES[unitType]?.producer ||
+        (unitType === "worker" ? "townCenter" : "barracks");
     const producers = state.buildings
       .filter(
         (b) =>
@@ -320,6 +422,7 @@ const controls = attachControls({
   onOrder: order,
   onPlace: build,
   onHover: preview,
+  onRally: previewRally,
   onCancel: cancel,
   onPause: pause,
   onGroup: group,
@@ -499,12 +602,22 @@ function frame(now) {
     });
   }
   const drawBegin = diagnostics ? performance.now() : 0;
-  renderer.draw(state, view, selection, ghost, now / 1000);
+  renderer.draw(state, view, selection, ghost, now / 1000, rallyGhost);
   if (diagnostics && started)
     recordTiming("render", performance.now() - drawBegin);
   if (started) {
     hudElapsed += dt;
     if (hudElapsed > 0.15) {
+      if (mode === "rally" && rallyGhost) {
+        Object.assign(
+          rallyGhost,
+          rallyPlacement(state, rallyBuildingId, {
+            x: rallyGhost.x,
+            y: rallyGhost.y,
+            ...(rallyGhost.targetId ? { targetId: rallyGhost.targetId } : {}),
+          }),
+        );
+      }
       if (buildType && ghost)
         Object.assign(ghost, placement(state, buildType, ghost.x, ghost.y));
       hudElapsed = 0;
@@ -544,6 +657,8 @@ if (diagnostics) {
     camera: () => ({ ...view }),
     selected: () => [...selection],
     mode: () => mode,
+    rallyPreview: () => (rallyGhost ? structuredClone(rallyGhost) : null),
+    terrainStatus: () => renderer.terrainStatus(),
     screenToWorld: (x, y) => renderer.screenToWorld(x, y, view),
     performanceMetrics: () => ({
       stepMs: timingSummary(timingSamples.steps),

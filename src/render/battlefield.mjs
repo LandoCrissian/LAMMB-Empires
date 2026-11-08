@@ -89,18 +89,46 @@ export class Battlefield {
     const rect = this.canvas.getBoundingClientRect();
     const sx = clientX - rect.left,
       sy = clientY - rect.top;
+    const ground = this.screenToWorld(clientX, clientY, view);
+    const interior = state.buildings
+      .filter(
+        (b) =>
+          b.hp > 0 &&
+          ground.x > b.x + 0.05 &&
+          ground.x < b.x + b.width - 0.05 &&
+          ground.y > b.y + 0.05 &&
+          ground.y < b.y + b.height - 0.05,
+      )
+      .sort(
+        (a, b) =>
+          b.x +
+          b.y +
+          (b.width + b.height) / 2 -
+          (a.x + a.y + (a.width + a.height) / 2),
+      )[0];
     let closest = null,
       distance = Infinity;
     for (const u of state.units) {
       if (u.hp <= 0) continue;
       const p = this.worldToScreen(u.x, u.y, view);
-      const d = Math.hypot(p.x - sx, (p.y - sy - 10 * view.zoom) * 0.8);
-      if (d < 23 * view.zoom + 7 && d < distance) {
+      const bodyHit =
+        Math.abs(p.x - sx) < (u.type === "ram" ? 27 : 10) * view.zoom + 2 &&
+        sy >= p.y - (u.type === "ram" ? 58 : 36) * view.zoom &&
+        sy <= p.y + 5 * view.zoom;
+      // Large touch halos help isolated troops, but may not steal taps from a
+      // production building's interior unless the visible troop body is hit.
+      if (interior && !bodyHit) continue;
+      const d = Math.hypot(
+        p.x - sx,
+        (p.y - sy - (u.type === "ram" ? 24 : 10) * view.zoom) * 0.8,
+      );
+      if (d < (u.type === "ram" ? 31 : 23) * view.zoom + 7 && d < distance) {
         closest = u;
         distance = d;
       }
     }
     if (closest) return closest;
+    if (interior) return interior;
     const world = this.screenToWorld(clientX, clientY, view);
     for (const b of [...state.buildings].reverse()) {
       if (b.hp <= 0) continue;
@@ -134,6 +162,7 @@ export class Battlefield {
     selection = new Set(),
     placementGhost = null,
     frameTime = 0,
+    rallyGhost = null,
   ) {
     const c = this.ctx;
     const selected = selection instanceof Set ? selection : new Set(selection);
@@ -142,6 +171,7 @@ export class Battlefield {
     c.fillRect(0, 0, this.width, this.height);
     if (this.cachedMap !== state.map || this.cachedSeed !== state.seed)
       this.buildGround(state);
+    this.advanceGroundDetails();
     const origin = this.worldToScreen(0, 0, view);
     c.save();
     c.translate(origin.x, origin.y);
@@ -237,7 +267,7 @@ export class Battlefield {
       const isSelected = selected.has(e.id);
       if (kind === "node") this.node(e, isSelected);
       else if (kind === "building") this.building(e, state.time, isSelected);
-      else this.unit(e, state.time, isSelected);
+      else this.unit(e, state.time, isSelected, state);
       if (e.lastHitAt !== undefined && state.time - e.lastHitAt < 0.2) {
         c.save();
         c.globalAlpha = (1 - (state.time - e.lastHitAt) / 0.2) * 0.6;
@@ -254,6 +284,7 @@ export class Battlefield {
     }
     this.effects(state, view, selected);
     this.drawOrderMarkers(view, frameTime || performance.now() / 1000);
+    this.drawRallies(state, view, selected, rallyGhost);
     if (placementGhost) this.ghost(placementGhost, view);
     const vignette = c.createRadialGradient(
       this.width / 2,
@@ -270,9 +301,21 @@ export class Battlefield {
   }
 
   buildGround(state) {
+    const startedAt = performance.now();
+    this.terrainJobs = [];
+    this.terrainJobIndex = 0;
+    this.terrainWork = {
+      startedAt,
+      baseMs: 0,
+      detailCpuMs: 0,
+      maxChunkMs: 0,
+      completedAt: null,
+      total: 0,
+    };
     this.cachedMap = state.map;
     this.cachedSeed = state.seed;
     this.positions.clear();
+    this.orderMarkers = [];
     const { width, height } = state.map;
     this.ground = document.createElement("canvas");
     this.ground.width = ((width + height) * TW) / 2 + 40;
@@ -351,27 +394,29 @@ export class Battlefield {
               false,
             );
         } else {
-          for (let i = 0; i < (t === "road" ? 3 : 8); i++) {
-            const a = hash(x * 13 + i, y * 3),
-              b = hash(x * 3 + i, y * 11);
-            const gx = px + (a - b) * 28,
-              gy = py + (a + b - 1) * 13;
-            if (t === "road") {
-              c.fillStyle = "#615a3d24";
-              c.fillRect(gx, gy, 2 + n * 3, 1);
-            } else {
-              c.strokeStyle = i % 3 === 0 ? "#acc47c35" : "#244d3228";
-              c.beginPath();
-              c.moveTo(gx - 2, gy - 2);
-              c.lineTo(gx, gy);
-              c.lineTo(gx + 1, gy - 3);
-              c.stroke();
-              if (n > 0.89 && i < 3) {
-                c.fillStyle = "#cfc88088";
-                c.fillRect(gx + 4, gy + 2, 1.5, 1.5);
+          this.terrainJobs.push(() => {
+            for (let i = 0; i < (t === "road" ? 3 : 8); i++) {
+              const a = hash(x * 13 + i, y * 3),
+                b = hash(x * 3 + i, y * 11);
+              const gx = px + (a - b) * 28,
+                gy = py + (a + b - 1) * 13;
+              if (t === "road") {
+                c.fillStyle = "#615a3d24";
+                c.fillRect(gx, gy, 2 + n * 3, 1);
+              } else {
+                c.strokeStyle = i % 3 === 0 ? "#acc47c35" : "#244d3228";
+                c.beginPath();
+                c.moveTo(gx - 2, gy - 2);
+                c.lineTo(gx, gy);
+                c.lineTo(gx + 1, gy - 3);
+                c.stroke();
+                if (n > 0.89 && i < 3) {
+                  c.fillStyle = "#cfc88088";
+                  c.fillRect(gx + 4, gy + 2, 1.5, 1.5);
+                }
               }
             }
-          }
+          });
         }
       }
     // Tiny discarded stones and wildflowers soften the regular terrain at no per-frame cost.
@@ -381,11 +426,58 @@ export class Battlefield {
       if (terrain(x, y) !== "grass") continue;
       const px = ox + (x - y) * 32,
         py = oy + (x + y) * 16;
-      c.fillStyle = "#c6c99566";
-      c.beginPath();
-      c.ellipse(px + 9, py + 18, 2, 1, -0.2, 0, 7);
-      c.fill();
+      this.terrainJobs.push(() => {
+        c.fillStyle = "#c6c99566";
+        c.beginPath();
+        c.ellipse(px + 9, py + 18, 2, 1, -0.2, 0, 7);
+        c.fill();
+      });
     }
+    this.terrainWork.baseMs = performance.now() - startedAt;
+    this.terrainWork.total = this.terrainJobs.length;
+  }
+
+  advanceGroundDetails() {
+    if (!this.terrainWork || this.terrainWork.completedAt !== null) return;
+    const begin = performance.now();
+    let count = 0;
+    // The complete terrain, roads, river and obstructing ridges are already visible.
+    // Only cosmetic grass, pebbles and grain are spread over short drawing batches.
+    while (this.terrainJobIndex < this.terrainJobs.length && count < 96) {
+      this.terrainJobs[this.terrainJobIndex++]();
+      count++;
+      if (count % 8 === 0 && performance.now() - begin >= 3) break;
+    }
+    const cost = performance.now() - begin;
+    this.terrainWork.detailCpuMs += cost;
+    this.terrainWork.maxChunkMs = Math.max(this.terrainWork.maxChunkMs, cost);
+    if (this.terrainJobIndex >= this.terrainJobs.length) {
+      this.terrainWork.completedAt = performance.now();
+      this.terrainJobs = [];
+    }
+  }
+
+  terrainStatus() {
+    const work = this.terrainWork;
+    if (!work)
+      return {
+        ready: false,
+        baseMs: 0,
+        detailCpuMs: 0,
+        maxChunkMs: 0,
+        elapsedMs: 0,
+        remaining: 0,
+        total: 0,
+      };
+    return {
+      ready: work.completedAt !== null,
+      baseMs: work.baseMs,
+      detailCpuMs: work.detailCpuMs,
+      maxChunkMs: work.maxChunkMs,
+      elapsedMs: (work.completedAt ?? performance.now()) - work.startedAt,
+      remaining: work.total - this.terrainJobIndex,
+      total: work.total,
+    };
   }
 
   poly(points, fill, stroke = null, c = this.ctx, lineWidth = 1) {
@@ -563,12 +655,7 @@ export class Battlefield {
     );
     if (selected) {
       this.poly(
-        [
-          [0, -d - 4],
-          [w + 5, 0],
-          [0, d + 5],
-          [-w - 5, 0],
-        ],
+        this.footprint(b.width + 0.2, b.height + 0.2),
         "#a9e1c214",
         b.faction === "player" ? "#afeed2" : "#f4a178",
         c,
@@ -785,6 +872,104 @@ export class Battlefield {
         "#d9d9b9",
       );
       this.flag(-24, -48, p, time, 0.85);
+    } else if (b.type === "workshop") {
+      this.prism(0, 0, w * 0.9, d * 0.9, 7, "#b0a786", "#8c9279", "#697b6b");
+      this.prism(
+        -8,
+        -7,
+        w * 0.65,
+        d * 0.7,
+        26,
+        "#c3b68f",
+        "#b5a47d",
+        "#7c8b75",
+      );
+      this.roof(-8, -35, w * 0.76, d * 0.8, 12, p);
+      this.poly(
+        [
+          [-46, -24],
+          [-13, -8],
+          [-13, 13],
+          [-46, -3],
+        ],
+        "#344b42",
+      );
+      for (const x of [-47, -13])
+        this.line(
+          [
+            [x, -27],
+            [x, 8],
+          ],
+          "#bb9866",
+          4,
+        );
+      this.line(
+        [
+          [-46, -3],
+          [-15, 12],
+        ],
+        "#e0c68c",
+        3,
+      );
+      this.ellipse(-25, 3, 10, 8, "#514b37", "#d4bc83");
+      for (let i = 0; i < 6; i++) {
+        const a = (i * Math.PI) / 3;
+        this.line(
+          [
+            [-25, 3],
+            [-25 + Math.cos(a) * 9, 3 + Math.sin(a) * 7],
+          ],
+          "#a18c61",
+          2,
+        );
+      }
+      this.prism(48, 7, 24, 12, 6, "#b4915d", "#93784e", "#6a6d4f");
+      this.line(
+        [
+          [35, 4],
+          [35, -45],
+          [67, -29],
+          [67, -17],
+        ],
+        "#bd9b68",
+        5,
+      );
+      this.line(
+        [
+          [35, -40],
+          [56, -29],
+        ],
+        "#6d6247",
+        2,
+      );
+      this.line(
+        [
+          [67, -20],
+          [67, -4],
+        ],
+        "#354c47",
+        2,
+      );
+      this.poly(
+        [
+          [61, -6],
+          [70, -2],
+          [68, 5],
+          [61, 1],
+        ],
+        "#607b75",
+        "#bdc3a1",
+      );
+      for (let i = 0; i < 3; i++)
+        this.line(
+          [
+            [25 + i * 6, 16],
+            [46 + i * 6, 6],
+          ],
+          "#ceb17c",
+          4,
+        );
+      this.flag(-20, -49, p, time, 0.8);
     } else {
       this.prism(0, 0, w * 0.9, d * 0.9, 6, "#b2aa88", "#99a088", "#788d79");
       this.prism(
@@ -882,6 +1067,14 @@ export class Battlefield {
         b.faction === "player" ? "#99d8b2" : "#e69475",
       );
     if (b.queue?.length) {
+      if (selected)
+        this.healthBar(
+          0,
+          -h + 11,
+          42,
+          1 - b.queue[0].remaining / b.queue[0].total,
+          "#e8bf74",
+        );
       this.ellipse(w * 0.7, 8, 8, 5, "#253d3ce8", "#edcd8b");
       c.font = "bold 9px sans-serif";
       c.textAlign = "center";
@@ -1103,7 +1296,238 @@ export class Battlefield {
     }
   }
 
-  unit(u, time, selected) {
+  ram(u, time, selected, state) {
+    const c = this.ctx,
+      p = PALETTES[u.faction] || PALETTES.enemy;
+    const target = [...(state?.units || []), ...(state?.buildings || [])].find(
+      (e) => e.id === (u.combatTargetId || u.order?.targetId || u.lastTargetId),
+    );
+    const goal = target
+      ? {
+          x: target.x + (target.width || 0) / 2,
+          y: target.y + (target.height || 0) / 2,
+        }
+      : u.order;
+    const direction =
+      goal && Number.isFinite(goal.x)
+        ? goal.x - u.x - (goal.y - u.y) < 0
+          ? -1
+          : 1
+        : 1;
+    const moving = (u.path?.length || 0) > 0,
+      roll = moving ? time * 7 : 0;
+    const hitAge = time - (u.lastAttackAt ?? -10),
+      lunge =
+        hitAge >= 0 && hitAge < 0.55
+          ? Math.sin((hitAge / 0.55) * Math.PI) * 6
+          : 0;
+    this.ellipse(3, 3, 24, 10, "#102f276b");
+    if (selected)
+      this.ellipse(
+        0,
+        0,
+        25,
+        12,
+        "#b0eddc18",
+        u.faction === "player" ? "#b4efdb" : "#ffb896",
+      );
+    c.save();
+    c.scale(direction, 1);
+    for (const [x, y] of [
+      [-19, -5],
+      [9, -10],
+      [-5, 8],
+      [23, 0],
+    ]) {
+      this.ellipse(x, y, 6.5, 7, "#534734", "#d0b780");
+      for (let i = 0; i < 4; i++) {
+        const a = roll + (i * Math.PI) / 2;
+        this.line(
+          [
+            [x, y],
+            [x + Math.cos(a) * 5, y + Math.sin(a) * 5.5],
+          ],
+          "#a5946d",
+          1.5,
+        );
+      }
+      this.ellipse(x, y, 1.5, 2, "#d0bb83");
+    }
+    this.prism(0, -7, 25, 11, 6, "#a28b60", "#816a48", "#526354");
+    this.line(
+      [
+        [-19, -12],
+        [-19, -37],
+        [10, -48],
+        [29, -35],
+        [29, -11],
+      ],
+      "#a78c5e",
+      3,
+    );
+    this.line(
+      [
+        [-19, -37],
+        [11, -23],
+        [29, -35],
+      ],
+      "#d1b47c",
+      2.5,
+    );
+    this.line(
+      [
+        [-17, -18],
+        [30, -4],
+      ],
+      "#685c41",
+      2,
+    );
+    this.prism(1 + lunge, -16, 31, 5, 8, "#ad8a52", "#8a6b40", "#6a694a");
+    this.prism(31 + lunge, -17, 6, 6, 11, "#ccd1ba", "#8eaca3", "#45645f");
+    this.line(
+      [
+        [-10, -36],
+        [-10, -19],
+      ],
+      "#c0b496",
+      1.5,
+    );
+    this.line(
+      [
+        [16, -39],
+        [16, -13],
+      ],
+      "#c0b496",
+      1.5,
+    );
+    this.roof(2, -36, 30, 14, 11, p);
+    this.line(
+      [
+        [-20, -48],
+        [8, -34],
+        [30, -45],
+      ],
+      "#d3d7b6",
+      1.5,
+    );
+    this.poly(
+      [
+        [-8, -31],
+        [1, -27],
+        [1, -16],
+        [-8, -20],
+      ],
+      p.dark,
+    );
+    this.ellipse(-4, -27, 3, 3.5, "#d8bd8f");
+    c.restore();
+    if (selected || u.hp < u.maxHp || time - (u.lastAttackAt ?? -10) < 3)
+      this.healthBar(
+        0,
+        -59,
+        39,
+        u.hp / u.maxHp,
+        u.faction === "player" ? "#b4e2ba" : "#efa080",
+      );
+    if (selected && u.order?.type === "hold")
+      this.ellipse(0, 0, 28, 14, null, "#f4d893");
+  }
+
+  drawRallies(state, view, selection, ghost) {
+    const c = this.ctx;
+    for (const building of state.buildings) {
+      if (
+        !selection.has(building.id) ||
+        building.faction !== "player" ||
+        building.hp <= 0
+      )
+        continue;
+      const destination =
+        ghost?.buildingId === building.id ? ghost : building.rally;
+      if (
+        !destination ||
+        !Number.isFinite(destination.x) ||
+        !Number.isFinite(destination.y)
+      )
+        continue;
+      const start = this.worldToScreen(
+        building.x + building.width / 2,
+        building.y + building.height / 2,
+        view,
+      );
+      const end = this.worldToScreen(destination.x, destination.y, view);
+      const valid = destination.ok !== false;
+      const color = valid
+        ? destination.type === "gather"
+          ? "#c9edab"
+          : "#e6cc8b"
+        : "#f2a285";
+      c.save();
+      c.strokeStyle = color;
+      c.globalAlpha = 0.7;
+      c.lineWidth = 1.4;
+      c.setLineDash([5, 6]);
+      c.beginPath();
+      c.moveTo(start.x, start.y);
+      c.lineTo(end.x, end.y);
+      c.stroke();
+      c.setLineDash([]);
+      c.globalAlpha = 1;
+      c.translate(end.x, end.y);
+      c.scale(view.zoom, view.zoom);
+      this.ellipse(0, 0, 13, 6, "#14382b7a", color);
+      this.line(
+        [
+          [0, 0],
+          [0, -33],
+        ],
+        "#e0cc9b",
+        2.2,
+      );
+      this.poly(
+        [
+          [1, -33],
+          [23, -28],
+          [18, -18],
+          [1, -22],
+        ],
+        valid ? "#2c7379" : "#94584b",
+        color,
+        c,
+        1.5,
+      );
+      this.line(
+        [
+          [7, -27],
+          [10, -24],
+          [16, -28],
+        ],
+        color,
+        1.5,
+      );
+      c.font = "bold 10px Arial";
+      c.textAlign = "center";
+      c.shadowColor = "#102b29";
+      c.shadowBlur = 4;
+      c.fillStyle = color;
+      c.fillText(
+        valid
+          ? destination.type === "gather"
+            ? "GATHER RALLY"
+            : "RALLY"
+          : "INVALID",
+        0,
+        19,
+      );
+      c.restore();
+    }
+  }
+
+  unit(u, time, selected, state) {
+    if (u.type === "ram") {
+      this.ram(u, time, selected, state);
+      return;
+    }
     const c = this.ctx,
       p = PALETTES[u.faction] || PALETTES.enemy;
     const active = u.order && !["idle", "stop"].includes(u.order.type);
@@ -1535,6 +1959,13 @@ export class Battlefield {
           null,
           "#b9e5c6",
         );
+      if (e.type === "attack" && e.siege && e.structureHit)
+        this.impact(
+          this.worldToScreen(e.targetX, e.targetY, view),
+          z,
+          age,
+          true,
+        );
       if (e.type === "attack" && selected?.has(e.targetId) && age > 0.18) {
         const hit = this.worldToScreen(e.targetX, e.targetY, view);
         c.fillStyle = "#ffe3b4";
@@ -1633,12 +2064,7 @@ export class Battlefield {
     c.translate(p.x, p.y);
     c.scale(view.zoom, view.zoom);
     this.poly(
-      [
-        [0, -d],
-        [w, 0],
-        [0, d],
-        [-w, 0],
-      ],
+      this.footprint(g.width || 2, g.height || 2),
       g.ok ? "#aee7b54d" : "#e67f7455",
       g.ok ? "#d2f2bd" : "#ffd0a7",
       c,
@@ -1659,5 +2085,14 @@ export class Battlefield {
       false,
     );
     c.restore();
+  }
+
+  footprint(width, height) {
+    return [
+      [(height - width) * 16, -(width + height) * 8],
+      [(width + height) * 16, (width - height) * 8],
+      [(width - height) * 16, (width + height) * 8],
+      [-(width + height) * 16, (height - width) * 8],
+    ];
   }
 }

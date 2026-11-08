@@ -19,8 +19,13 @@ import { formationDestinations } from "./formations.mjs";
 import { makeUnit, updateWorker, updateBuildings } from "./economy.mjs";
 import { updateCombatUnit, updateDefenses } from "./combat.mjs";
 import { updateAI } from "./ai.mjs";
+import {
+  rallyPlacement,
+  isProductionBuilding,
+  updateRallyOrders,
+} from "./rally.mjs";
 
-export { entityCenter };
+export { entityCenter, rallyPlacement };
 export function population(state, faction = "player") {
   return (
     state.units.filter((u) => u.faction === faction && u.hp > 0).length +
@@ -46,6 +51,7 @@ function makeBuilding(state, type, faction, x, y, complete = true) {
     queue: [],
     builders: 0,
     cooldown: 0,
+    rally: null,
   };
   if (type === "farm") b.foodRemaining = def.food;
   state.buildings.push(b);
@@ -185,7 +191,10 @@ export function createGame(seed = 5280) {
 export function placement(state, type, x, y) {
   const def = Object.hasOwn(BUILDING_TYPES, type) ? BUILDING_TYPES[type] : null;
   if (!def || type === "townCenter")
-    return { ok: false, reason: "Choose a Farm, Barracks, or Watchtower." };
+    return {
+      ok: false,
+      reason: "Choose a Farm, Barracks, Watchtower, or Siege Workshop.",
+    };
   if (state.status !== "playing")
     return { ok: false, reason: "This match has ended." };
   if (
@@ -240,6 +249,39 @@ export function command(state, action) {
   const fail = (reason) => ({ ok: false, reason });
   if (state.status !== "playing") return fail("This match has ended.");
   if (!action || typeof action !== "object") return fail("Invalid command.");
+  if (action.type === "setRally") {
+    const result = rallyPlacement(state, action.buildingId, action);
+    if (!result.ok) return result;
+    const building = state.buildings.find((b) => b.id === action.buildingId);
+    building.rally = { ...result.rally };
+    building.rallyVersion = state.obstacleVersion;
+    event(
+      state,
+      "rally",
+      building.x,
+      building.y,
+      result.rally.type === "gather"
+        ? "Worker gathering rally set."
+        : "Production rally point set.",
+    );
+    return { ok: true, rally: { ...building.rally } };
+  }
+  if (action.type === "clearRally") {
+    const building = state.buildings.find(
+      (b) => b.id === action.buildingId && b.faction === "player",
+    );
+    if (!isProductionBuilding(building))
+      return fail("Select your completed production building.");
+    building.rally = null;
+    event(
+      state,
+      "rally",
+      building.x,
+      building.y,
+      "Production rally cleared. New units will wait by the building.",
+    );
+    return { ok: true };
+  }
   if (action.type === "build") {
     const valid = placement(state, action.buildingType, action.x, action.y);
     if (!valid.ok) return valid;
@@ -297,6 +339,7 @@ export function command(state, action) {
     );
     for (const u of workers) {
       u.order = { type: "build", targetId: b.id };
+      u.rallyAssignment = null;
       u.delivering = false;
       clearPath(u);
     }
@@ -317,15 +360,12 @@ export function command(state, action) {
     const b = state.buildings.find(
       (b) => b.id === action.buildingId && b.faction === "player" && b.hp > 0,
     );
-    if (
-      !b ||
-      b.progress !== 1 ||
-      b.type !== (action.unitType === "worker" ? "townCenter" : "barracks")
-    )
+    const producer =
+      def.producer ||
+      (action.unitType === "worker" ? "townCenter" : "barracks");
+    if (!b || b.progress !== 1 || b.type !== producer)
       return fail(
-        action.unitType === "worker"
-          ? "Select a completed Town Center."
-          : "Build and select a completed Barracks.",
+        `Build and select a completed ${BUILDING_TYPES[producer]?.label || "production building"}.`,
       );
     if (b.queue.length >= 5) return fail("Training queue is full.");
     if (population(state) >= POPULATION_CAP)
@@ -422,6 +462,7 @@ export function command(state, action) {
       if (["gather", "build"].includes(order.type) && u.type !== "worker")
         continue;
       u.order = { ...order };
+      u.rallyAssignment = null;
       u.delivering = false;
       clearPath(u);
       if (order.type === "hold") {
@@ -470,6 +511,7 @@ export function stepGame(state, dt = STEP) {
   if (state.status !== "playing" || finish(state)) return state;
   state.tick++;
   state.time = Math.round((state.time + dt) * 1e9) / 1e9;
+  updateRallyOrders(state);
   updateAI(state);
   for (const b of state.buildings) b.builders = 0;
   for (const u of state.units) {

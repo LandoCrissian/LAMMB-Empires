@@ -6,7 +6,14 @@ export default defineConfig({
   fullyParallel: false,
   use: {
     baseURL: "http://127.0.0.1:4173",
-    trace: "retain-on-failure",
+    // Keep DOM/source traces without continuously recording the animated canvas.
+    // Explicit evidence screenshots and every gameplay assertion remain enabled.
+    trace: {
+      mode: "retain-on-failure",
+      screenshots: false,
+      snapshots: true,
+      sources: true,
+    },
     screenshot: "only-on-failure",
   },
   projects: [
@@ -43,6 +50,33 @@ export default defineConfig({
       use: {
         browserName: "webkit",
         viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "rally-siege-desktop-chromium",
+      testMatch: "**/rally-siege.spec.mjs",
+      use: { browserName: "chromium", viewport: { width: 1440, height: 900 } },
+    },
+    {
+      name: "rally-siege-mobile-chromium",
+      testMatch: "**/rally-siege.spec.mjs",
+      use: {
+        browserName: "chromium",
+        viewport: { width: 844, height: 390 },
+        deviceScaleFactor: 2,
+        isMobile: true,
+        hasTouch: true,
+      },
+    },
+    {
+      name: "rally-siege-mobile-webkit",
+      testMatch: "**/rally-siege.spec.mjs",
+      use: {
+        browserName: "webkit",
+        viewport: { width: 844, height: 390 },
         deviceScaleFactor: 2,
         isMobile: true,
         hasTouch: true,

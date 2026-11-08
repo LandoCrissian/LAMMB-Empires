@@ -30,11 +30,20 @@ export const BUILDING_TYPES = Object.freeze({
     damage: 28,
     period: 1.4,
   },
+  workshop: {
+    label: "Siege Workshop",
+    width: 3,
+    height: 2,
+    hp: 800,
+    cost: Object.freeze({ wood: 120, stone: 70, gold: 30 }),
+    buildTime: 45,
+  },
 });
 export const UNIT_TYPES = Object.freeze({
   worker: {
     ...UNITS.worker,
     label: "Worker",
+    producer: "townCenter",
     speed: 2.35,
     trainTime: 14,
     capacity: 18,
@@ -44,6 +53,7 @@ export const UNIT_TYPES = Object.freeze({
   swordsman: {
     ...UNITS.swordsman,
     label: "Swordsman",
+    producer: "barracks",
     speed: 2.25,
     trainTime: 28,
     sight: 6,
@@ -51,9 +61,24 @@ export const UNIT_TYPES = Object.freeze({
   archer: {
     ...UNITS.archer,
     label: "Archer",
+    producer: "barracks",
     speed: 2.35,
     trainTime: 32,
     sight: 7,
+  },
+  ram: {
+    label: "Siege Ram",
+    producer: "workshop",
+    hp: 360,
+    damage: 9,
+    structureDamage: 135,
+    range: 1.05,
+    period: 2.4,
+    speed: 1.1,
+    sight: 6,
+    radius: 0.44,
+    cost: Object.freeze({ wood: 80, gold: 60, food: 30 }),
+    trainTime: 45,
   },
   infantry: {
     label: "Ember infantry",

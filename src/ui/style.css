@@ -83,6 +83,9 @@ button.primary:hover {
   touch-action: none;
   user-select: none;
 }
+body[data-command-mode="rally"] #battlefield {
+  cursor: crosshair;
+}
 .panel {
   background: linear-gradient(130deg, #112c2bee, #0f2425ed);
   border: 1px solid #91a79932;
@@ -527,7 +530,8 @@ h1 span {
   font-size: 9px;
   color: #aebcac;
   margin-top: 8px;
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.2;
 }
 .action.active small {
   color: #dcc795;

@@ -11,6 +11,7 @@ export function attachControls({
   onOrder,
   onPlace,
   onHover,
+  onRally,
   onCancel,
   onPause,
   onGroup,
@@ -152,6 +153,10 @@ export function attachControls({
       return;
     }
     const entity = renderer.hitTest(getState(), e.clientX, e.clientY, view);
+    if (getMode() === "rally") {
+      onRally(p, entity);
+      return;
+    }
     const hasUnits = getState().units.some((u) => getSelection().has(u.id));
     if (end.button === 2 || getMode() === "move" || getMode() === "attack") {
       onOrder(p, entity, getMode());

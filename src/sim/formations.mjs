@@ -96,8 +96,9 @@ export function formationDestinations(state, units, destination) {
   const side = { x: -forward.y, y: forward.x };
   const ordered = members.sort(
     (a, b) =>
-      (UNIT_TYPES[a.type]?.range > 2 ? 1 : 0) -
-        (UNIT_TYPES[b.type]?.range > 2 ? 1 : 0) || stableId(a, b),
+      (a.type === "ram" ? 1 : UNIT_TYPES[a.type]?.range > 2 ? 2 : 0) -
+        (b.type === "ram" ? 1 : UNIT_TYPES[b.type]?.range > 2 ? 2 : 0) ||
+      stableId(a, b),
   );
   const columns = Math.min(5, Math.ceil(Math.sqrt(members.length)));
   const rows = Math.ceil(members.length / columns);

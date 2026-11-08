@@ -12,6 +12,8 @@ export const labels = {
   farm: "Farm",
   barracks: "Barracks",
   tower: "Watchtower",
+  workshop: "Siege Workshop",
+  ram: "Siege Ram",
   wood: "Timber grove",
   stone: "Stone outcrop",
   gold: "Gold vein",
@@ -25,6 +27,8 @@ const symbols = {
   farm: "♧",
   barracks: "⚑",
   tower: "♜",
+  workshop: "⚙",
+  ram: "▰",
   wood: "♠",
   stone: "◆",
   food: "♧",
@@ -76,7 +80,7 @@ export class HUD {
           .querySelectorAll("[data-tab]")
           .forEach((b) => b.classList.toggle("active", b === tab));
         this.lastActions = "";
-        onAction("refresh");
+        onAction(`tab-${this.tab}`);
       }
       const button = e.target.closest("[data-action]");
       if (button && !button.disabled) onAction(button.dataset.action);
@@ -119,7 +123,7 @@ export class HUD {
     this.toastDuration = urgent ? 6500 : 3600;
     this.urgentToastUntil = urgent ? now + this.toastDuration : 0;
   }
-  render(state, selection, mode, buildType, ghost) {
+  render(state, selection, mode, buildType, ghost, rallyGhost = null) {
     const touch = navigator.maxTouchPoints > 0;
     const selected = [
       ...state.units,
@@ -129,6 +133,19 @@ export class HUD {
     const own = selected.filter((e) => e.faction === "player");
     const units = own.filter((e) => state.units.includes(e));
     const workers = units.filter((e) => e.type === "worker");
+    const price = (cost) =>
+      this.compact
+        ? Object.entries(cost || {})
+            .map(([key, value]) => `${value}${key[0]}`)
+            .join(" · ")
+        : costText(cost);
+    const producer =
+      own.length === 1 &&
+      state.buildings.includes(own[0]) &&
+      own[0].progress === 1 &&
+      ["townCenter", "barracks", "workshop"].includes(own[0].type)
+        ? own[0]
+        : null;
     const resourcesHTML =
       ["wood", "stone", "food", "gold"]
         .map(
@@ -212,9 +229,15 @@ export class HUD {
                 idle: "Ready for an assignment",
                 attack: "Defending the settlement",
               }[entity.order.type] || "Following orders"
-            : `${UNIT_TYPES[entity.type]?.range > 2 ? "Ranged" : "Melee"} · ${entity.order.type === "hold" ? "Holding fire line" : entity.order.type === "idle" ? "Ready / defensive" : "Following orders"}`;
+            : `${entity.type === "ram" ? "Siege / escort" : UNIT_TYPES[entity.type]?.range > 2 ? "Ranged" : "Melee"} · ${entity.order.type === "hold" ? "Holding fire line" : entity.order.type === "idle" ? "Ready / defensive" : "Following orders"}`;
       if (entity.queue?.length)
-        detail = `Training ${labels[entity.queue[0].unitType]} · ${Math.ceil(entity.queue[0].remaining)}s (${entity.queue.length} queued)`;
+        detail = entity.spawnBlocked
+          ? `${labels[entity.queue[0].unitType]} ready · Clear the production exit`
+          : `Training ${labels[entity.queue[0].unitType]} · ${Math.ceil(entity.queue[0].remaining)}s (${entity.queue.length} queued)${entity.rally ? " · Rally set" : ""}`;
+      else if (producer?.id === entity.id)
+        detail = entity.rally
+          ? `Rally: ${entity.rally.type === "gather" ? "gather supplies" : "move to flag"}`
+          : "Ready · Set a production rally";
       hp = entity.maxHp ? `${Math.ceil(entity.hp)} / ${entity.maxHp}` : "";
       health = entity.maxHp ? entity.hp / entity.maxHp : 0;
     } else if (selected.length > 1) {
@@ -229,7 +252,22 @@ export class HUD {
       this.lastSelection = info;
     }
     let actions = "";
-    if (buildType) {
+    if (mode === "rally") {
+      actions =
+        action(
+          "confirm-rally",
+          "Confirm Rally",
+          "⚑",
+          rallyGhost
+            ? rallyGhost.ok
+              ? rallyGhost.type === "gather"
+                ? "Gather at this source"
+                : "Move to this destination"
+              : rallyGhost.reason || "Invalid destination"
+            : "Tap a destination or resource",
+          { disabled: !rallyGhost?.ok },
+        ) + action("cancel", "Cancel", "×", "Keep the current rally");
+    } else if (buildType) {
       actions =
         action(
           "confirm-build",
@@ -243,21 +281,22 @@ export class HUD {
           { disabled: !ghost?.ok },
         ) + action("cancel", "Cancel", "×", "Return to command");
     } else if (this.tab === "build") {
-      actions = ["farm", "barracks", "tower"]
+      actions = ["farm", "barracks", "tower", "workshop"]
         .map((type) =>
           action(
             `build-${type}`,
-            labels[type],
+            type === "workshop" ? "Workshop" : labels[type],
             symbols[type],
-            costText(BUILDING_TYPES[type].cost),
+            price(BUILDING_TYPES[type].cost),
             {
+              label: labels[type],
               disabled: !canAfford(state.resources, BUILDING_TYPES[type].cost),
             },
           ),
         )
         .join("");
     } else if (this.tab === "train") {
-      actions = ["worker", "swordsman", "archer"]
+      actions = ["worker", "swordsman", "archer", "ram"]
         .map((type) => {
           const queued = state.buildings
             .filter((b) => b.faction === "player")
@@ -267,17 +306,34 @@ export class HUD {
             `train-${type}`,
             `${labels[type]}${queued ? ` (${queued})` : ""}`,
             symbols[type],
-            `${costText(UNIT_TYPES[type].cost)}${type !== "worker" && !ready("barracks") ? " · Needs barracks" : ""}`,
+            `${price(UNIT_TYPES[type].cost)}${!ready(UNIT_TYPES[type].producer) ? ` · Needs ${type === "ram" ? "workshop" : labels[UNIT_TYPES[type].producer]}` : ""}`,
             {
               label: labels[type],
               disabled:
                 population(state) >= POPULATION_CAP ||
                 !canAfford(state.resources, UNIT_TYPES[type].cost) ||
-                !ready(type === "worker" ? "townCenter" : "barracks"),
+                !ready(UNIT_TYPES[type].producer),
             },
           );
         })
         .join("");
+    } else if (producer) {
+      actions =
+        action(
+          "set-rally",
+          "Set Rally Point",
+          "⚑",
+          producer.type === "townCenter"
+            ? "Move or gather · future workers"
+            : "Move · future recruits",
+        ) +
+        action(
+          "clear-rally",
+          "Clear Rally",
+          "×",
+          "New units wait at the exit",
+          { disabled: !producer.rally },
+        );
     } else {
       actions =
         action(
@@ -335,23 +391,30 @@ export class HUD {
       el("actions").innerHTML = actions;
       this.lastActions = actions;
     }
-    el("hint").textContent = buildType
-      ? `${labels[buildType]} · ${ghost ? (ghost.ok ? "Valid location. Confirm to begin construction." : ghost.reason || "Choose open ground near your settlement.") : "Choose a location near your settlement."}`
-      : mode === "attack"
-        ? "Tap an enemy to focus fire, or ground to attack-move."
-        : mode === "move"
-          ? "Tap the field to move your selected units."
-          : mode === "pan"
-            ? "Drag to explore. Tap Pan again to select units."
-            : workers.length
-              ? "Tap trees, stone, gold or a farm to gather. Build to expand."
-              : army.length && units.length
-                ? touch
-                  ? "Choose Move or Attack, then tap the field."
-                  : "Right-click to command, or choose Move / Attack then tap."
-                : touch
-                  ? "Select a unit. Drag the field to explore."
-                  : "Select a unit. Drag a selection box; WASD to explore.";
+    el("hint").textContent =
+      mode === "rally"
+        ? rallyGhost
+          ? rallyGhost.ok
+            ? "Preview ready. Confirm Rally to save this producer's instruction."
+            : rallyGhost.reason || "Choose a reachable destination."
+          : "Tap a reachable destination. Town Center workers can rally to deposits or farms."
+        : buildType
+          ? `${labels[buildType]} · ${ghost ? (ghost.ok ? "Valid location. Confirm to begin construction." : ghost.reason || "Choose open ground near your settlement.") : "Choose a location near your settlement."}`
+          : mode === "attack"
+            ? "Tap an enemy to focus fire, or ground to attack-move."
+            : mode === "move"
+              ? "Tap the field to move your selected units."
+              : mode === "pan"
+                ? "Drag to explore. Tap Pan again to select units."
+                : workers.length
+                  ? "Tap trees, stone, gold or a farm to gather. Build to expand."
+                  : army.length && units.length
+                    ? touch
+                      ? "Choose Move or Attack, then tap the field."
+                      : "Right-click to command, or choose Move / Attack then tap."
+                    : touch
+                      ? "Select a unit. Drag the field to explore."
+                      : "Select a unit. Drag a selection box; WASD to explore.";
     if (performance.now() - this.lastToast > (this.toastDuration || 3600))
       el("toast").classList.remove("visible");
   }
