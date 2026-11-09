@@ -69,13 +69,32 @@ function connectivity(state) {
   return result;
 }
 
+export function sameMovementRegion(state, a, b) {
+  const regions = connectivity(state);
+  const label = (point) => {
+    const x = Math.floor(point.x),
+      y = Math.floor(point.y);
+    return x >= 0 && y >= 0 && x < regions.width && y < regions.height
+      ? regions.components[y * regions.width + x]
+      : 0;
+  };
+  const first = label(a);
+  return first > 0 && first === label(b);
+}
+
 /**
  * Loose ranks aligned with the group's direction of travel. Every destination is
  * an independently reachable tile, reserved once, rather than a shared rally dot.
  * Orders remain ordinary move/attackMove orders, so ranks can compress through
  * a crossing and naturally reopen at their destinations.
  */
-export function formationDestinations(state, units, destination) {
+export function formationDestinations(
+  state,
+  units,
+  destination,
+  facing = null,
+  roleRanks = false,
+) {
   const members = units.filter((u) => u.hp > 0).slice();
   if (!members.length) return [];
   const center = members.reduce(
@@ -85,12 +104,16 @@ export function formationDestinations(state, units, destination) {
     }),
     { x: 0, y: 0 },
   );
-  const length = Math.hypot(destination.x - center.x, destination.y - center.y);
+  const direction = facing || {
+    x: destination.x - center.x,
+    y: destination.y - center.y,
+  };
+  const length = Math.hypot(direction.x, direction.y);
   const forward =
     length > 0.01
       ? {
-          x: (destination.x - center.x) / length,
-          y: (destination.y - center.y) / length,
+          x: direction.x / length,
+          y: direction.y / length,
         }
       : { x: 0, y: -1 };
   const side = { x: -forward.y, y: forward.x };
@@ -101,20 +124,45 @@ export function formationDestinations(state, units, destination) {
       stableId(a, b),
   );
   const columns = Math.min(5, Math.ceil(Math.sqrt(members.length)));
-  const rows = Math.ceil(members.length / columns);
+  const role = (unit) =>
+    unit.type === "ram" ? 1 : UNIT_TYPES[unit.type]?.range > 2 ? 2 : 0;
+  const groups = [0, 1, 2].map((rank) =>
+    ordered.filter((unit) => role(unit) === rank),
+  );
+  const rows = roleRanks
+    ? groups.reduce(
+        (count, group) => count + Math.ceil(group.length / columns),
+        0,
+      )
+    : Math.ceil(members.length / columns);
   const reserved = new Set();
   const results = [];
   const regions = connectivity(state);
   for (let index = 0; index < ordered.length; index++) {
-    const unit = ordered[index],
-      row = Math.floor(index / columns);
+    const unit = ordered[index];
+    const group = groups[role(unit)];
+    const localIndex = roleRanks ? group.indexOf(unit) : index;
+    const row =
+      (roleRanks
+        ? groups
+            .slice(0, role(unit))
+            .reduce(
+              (count, prior) => count + Math.ceil(prior.length / columns),
+              0,
+            )
+        : 0) + Math.floor(localIndex / columns);
     const component =
       regions.components[
         Math.floor(unit.y) * state.map.width + Math.floor(unit.x)
       ];
     if (!component) continue;
-    const rowLength = Math.min(columns, ordered.length - row * columns);
-    const across = (index % columns) - (rowLength - 1) / 2;
+    const rowLength = roleRanks
+      ? Math.min(
+          columns,
+          group.length - Math.floor(localIndex / columns) * columns,
+        )
+      : Math.min(columns, ordered.length - row * columns);
+    const across = (localIndex % columns) - (rowLength - 1) / 2;
     const depth = (rows - 1) / 2 - row;
     const ideal = {
       x: destination.x + side.x * across * 1.05 + forward.x * depth * 1.05,

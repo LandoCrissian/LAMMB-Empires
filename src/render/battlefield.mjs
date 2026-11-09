@@ -185,12 +185,29 @@ export class Battlefield {
     for (const unit of state.units) {
       if (!selected.has(unit.id) || unit.hp <= 0) continue;
       const type = unit.order?.type;
-      if (!["move", "attackMove", "attack", "hold"].includes(type)) continue;
+      if (
+        ![
+          "move",
+          "attackMove",
+          "attack",
+          "hold",
+          "assault",
+          "retreat",
+        ].includes(type)
+      )
+        continue;
       let target = unit.order;
-      if (type === "attack")
-        target = [...state.units, ...state.buildings].find(
-          (e) => e.id === unit.order.targetId && e.hp > 0,
-        );
+      const targetId =
+        type === "attack"
+          ? unit.order.targetId
+          : type === "assault"
+            ? unit.combatTargetId
+            : null;
+      if (targetId)
+        target =
+          [...state.units, ...state.buildings].find(
+            (e) => e.id === targetId && e.hp > 0,
+          ) || target;
       if (!target || !Number.isFinite(target.x)) continue;
       const a = this.worldToScreen(unit.x, unit.y, view);
       const b = this.worldToScreen(
@@ -199,11 +216,15 @@ export class Battlefield {
         view,
       );
       c.strokeStyle =
-        type === "hold"
-          ? "#e7d5a680"
-          : type.startsWith("attack")
-            ? "#f6b58d55"
-            : "#b7e8d84a";
+        type === "retreat"
+          ? "#b8bdff80"
+          : type === "assault"
+            ? "#e7ce8b70"
+            : type === "hold"
+              ? "#e7d5a680"
+              : type.startsWith("attack")
+                ? "#f6b58d55"
+                : "#b7e8d84a";
       c.lineWidth = 1;
       c.setLineDash([4, 6]);
       c.beginPath();
@@ -211,7 +232,10 @@ export class Battlefield {
       c.lineTo(b.x, b.y);
       c.stroke();
       c.setLineDash([]);
-      if (type === "move" || type === "attackMove" || type === "hold")
+      if (
+        ["move", "attackMove", "hold", "assault", "retreat"].includes(type) &&
+        !targetId
+      )
         this.ellipse(
           b.x,
           b.y,
@@ -222,6 +246,46 @@ export class Battlefield {
         );
     }
     c.restore();
+    // Only selected cohorts show a compact phase marker; orders stay legible in large battles.
+    for (const squad of state.assaults || []) {
+      if (!squad.ids.some((id) => selected.has(id)) || !squad.anchor) continue;
+      const p = this.worldToScreen(squad.anchor.x, squad.anchor.y, view);
+      if (
+        p.x < -40 ||
+        p.x > this.width + 40 ||
+        p.y < -40 ||
+        p.y > this.height + 40
+      )
+        continue;
+      c.save();
+      c.strokeStyle = "#ead49b99";
+      c.lineWidth = 1;
+      c.setLineDash([3, 5]);
+      this.ellipse(
+        p.x,
+        p.y,
+        20 * view.zoom,
+        10 * view.zoom,
+        null,
+        c.strokeStyle,
+      );
+      c.setLineDash([]);
+      c.font = "bold 10px Arial";
+      c.textAlign = "center";
+      c.fillStyle = "#ead49b";
+      c.shadowColor = "#102b29";
+      c.shadowBlur = 4;
+      const phase =
+        {
+          regroup: "REGROUP",
+          staging: "STAGING",
+          advance: "ASSAULT",
+          engage: "ENGAGING",
+          blocked: "ROUTE BLOCKED",
+        }[squad.phase] || "ASSAULT";
+      c.fillText(phase, p.x, p.y + 24 * view.zoom);
+      c.restore();
+    }
 
     const entities = [
       ...state.nodes
@@ -1985,8 +2049,10 @@ export class Battlefield {
     for (const marker of this.orderMarkers) {
       const age = Math.max(0, now - marker.time),
         p = this.worldToScreen(marker.x, marker.y, view);
-      const attack = marker.kind.startsWith("attack"),
-        color = attack ? "#f4c18a" : "#b5f2de";
+      const attack =
+          marker.kind.startsWith("attack") || marker.kind === "assault",
+        retreat = marker.kind === "retreat",
+        color = retreat ? "#bec5ff" : attack ? "#f4c18a" : "#b5f2de";
       const r = 16 + Math.max(0, 1 - age * 4) * 16;
       c.save();
       c.translate(p.x, p.y);
@@ -2045,6 +2111,25 @@ export class Battlefield {
           ],
           color,
           1.8,
+        );
+      } else if (retreat) {
+        this.line(
+          [
+            [-6, -5],
+            [-12, 0],
+            [-6, 5],
+          ],
+          color,
+          2,
+        );
+        this.line(
+          [
+            [3, -5],
+            [-3, 0],
+            [3, 5],
+          ],
+          color,
+          2,
         );
       } else this.ellipse(0, 0, 2.5, 1.3, color);
       c.restore();

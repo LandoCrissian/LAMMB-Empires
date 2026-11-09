@@ -162,6 +162,11 @@ export function reachable(state, unit, target, range = 0.8) {
     pathTo(state, unit, target, range).length > 0
   );
 }
+// A cohort may share a strategic route, while every actual soldier still moves
+// through moveToward and the same terrain/corner rules.
+export function plannedRoute(state, unit, target, range = 0.2) {
+  return pathTo(state, unit, target, range);
+}
 export function moveToward(state, unit, target, range, dt, speed) {
   if (distanceTo(unit, target) <= range + 0.005) {
     clearPath(unit);

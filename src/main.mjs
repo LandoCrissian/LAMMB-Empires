@@ -72,20 +72,12 @@ function setSelection(ids) {
   ghost = null;
   rallyBuildingId = null;
   rallyGhost = null;
-  if (
-    ids.size === 1 &&
-    state.buildings.some(
-      (b) =>
-        ids.has(b.id) &&
-        b.faction === "player" &&
-        ["townCenter", "barracks", "workshop"].includes(b.type),
-    )
-  ) {
-    hud.tab = "orders";
-    document
-      .querySelectorAll("[data-tab]")
-      .forEach((b) => b.classList.toggle("active", b.dataset.tab === "orders"));
-  }
+  hud.tab = "orders";
+  document
+    .querySelectorAll("[data-tab]")
+    .forEach((button) =>
+      button.classList.toggle("active", button.dataset.tab === "orders"),
+    );
   refresh();
 }
 function home() {
@@ -221,10 +213,36 @@ function order(p, entity, orderMode) {
     return;
   }
   let next;
-  if (entity?.faction === "enemy" && orderMode !== "move")
+  if (
+    orderMode === "gather" &&
+    !(
+      state.nodes.includes(entity) ||
+      (entity?.type === "farm" &&
+        entity.faction === "player" &&
+        entity.progress === 1)
+    )
+  ) {
+    hud.toast("Choose a resource deposit or a completed friendly farm.");
+    return;
+  }
+  if (
+    orderMode === "assist" &&
+    !(entity?.faction === "player" && entity.progress < 1)
+  ) {
+    hud.toast("Choose an unfinished friendly building to assist.");
+    return;
+  }
+  if (orderMode === "assault" || orderMode === "retreat") {
+    next = { type: orderMode, x: p.x, y: p.y };
+    if (orderMode === "assault" && entity?.faction === "enemy")
+      next.targetId = entity.id;
+  } else if (entity?.faction === "enemy" && orderMode !== "move")
     next = { type: "attack", targetId: entity.id };
   else if (
-    (state.nodes.includes(entity) || entity?.type === "farm") &&
+    (state.nodes.includes(entity) ||
+      (entity?.type === "farm" &&
+        entity.faction === "player" &&
+        entity.progress === 1)) &&
     orderMode !== "attack" &&
     orderMode !== "move"
   )
@@ -246,12 +264,26 @@ function order(p, entity, orderMode) {
     ? ids.filter(
         (id) => state.units.find((u) => u.id === id)?.type === "worker",
       )
-    : ids;
+    : next.type === "assault"
+      ? ids.filter(
+          (id) => state.units.find((u) => u.id === id)?.type !== "worker",
+        )
+      : ids;
   if (feedback(command(state, { type: "order", ids: allowed, order: next }))) {
     renderer.markOrder?.(
       p,
-      next.type === "attack" || next.type === "attackMove" ? "attack" : "move",
+      ["attack", "attackMove", "assault", "retreat"].includes(next.type)
+        ? next.type
+        : "move",
     );
+    if (next.type === "assault")
+      hud.toast(
+        `Coordinated assault · ${allowed.length} soldiers. Keep the force together.`,
+      );
+    if (next.type === "retreat")
+      hud.toast(
+        `Retreat · ${allowed.length} units regrouping. Enemy attacks still deal damage.`,
+      );
     mode = "select";
     refresh();
   }
@@ -260,6 +292,7 @@ function pause() {
   if (!started || state.status !== "playing") return;
   paused = true;
   clock.reset();
+  controls.reset();
   $("pause-dialog").showModal();
 }
 function resume() {
@@ -309,6 +342,15 @@ function handleAction(action) {
   if (action === "zoom-out") view.zoom = Math.max(0.45, view.zoom / 1.2);
   if (action === "cancel") cancel();
   if (action === "clear-selection") setSelection(new Set());
+  if (action === "construct") {
+    cancel();
+    hud.tab = "build";
+    document
+      .querySelectorAll("[data-tab]")
+      .forEach((button) =>
+        button.classList.toggle("active", button.dataset.tab === "build"),
+      );
+  }
   if (action === "confirm-build") confirmBuild();
   if (action === "confirm-rally") confirmRally();
   if (action === "set-rally") {
@@ -342,6 +384,27 @@ function handleAction(action) {
       cancel();
   }
   if (action.startsWith("mode-")) {
+    const selectedUnits = state.units.filter(
+      (u) => selection.has(u.id) && u.faction === "player" && u.hp > 0,
+    );
+    if (
+      action === "mode-assault" &&
+      !selectedUnits.some((u) => u.type !== "worker")
+    ) {
+      hud.toast("Select soldiers for a coordinated assault.");
+      return;
+    }
+    if (action === "mode-retreat" && !selectedUnits.length) {
+      hud.toast("Select units to retreat.");
+      return;
+    }
+    if (
+      ["mode-gather", "mode-assist"].includes(action) &&
+      !selectedUnits.some((u) => u.type === "worker")
+    ) {
+      hud.toast("Select workers for this assignment.");
+      return;
+    }
     buildType = null;
     ghost = null;
     rallyBuildingId = null;
@@ -429,8 +492,60 @@ const controls = attachControls({
   onGroup: group,
   onHome: home,
   onHold: () => handleAction("hold"),
+  onAssault: () => handleAction("mode-assault"),
+  onRetreat: () => handleAction("mode-retreat"),
   enabled: isInteractive,
 });
+// Cross-surface multi-touch is camera/cancellation intent. A secondary finger
+// on a HUD control must not recruit, build or release an old field command.
+let primaryTouchOnField = false;
+let suppressGestureClicks = false;
+document.addEventListener(
+  "pointerdown",
+  (event) => {
+    if (event.isPrimary) {
+      suppressGestureClicks = false;
+      primaryTouchOnField =
+        event.pointerType === "touch" && event.target === canvas;
+    }
+    const crossSurfaceTouch =
+      event.pointerType === "touch" &&
+      !event.isPrimary &&
+      (suppressGestureClicks ||
+        !primaryTouchOnField ||
+        event.target !== canvas);
+    if (crossSurfaceTouch) {
+      suppressGestureClicks = true;
+      controls.cancelGesture();
+      // Minimap navigation is allowed; military and paid HUD actions wait for a
+      // fresh primary tap after this gesture has ended.
+      if (event.target.id !== "minimap") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
+      return;
+    }
+    if (event.target !== canvas) controls.cancelGesture();
+  },
+  { capture: true },
+);
+document.addEventListener(
+  "click",
+  (event) => {
+    if (!suppressGestureClicks) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+  },
+  { capture: true },
+);
+// A deliberate keyboard interaction starts a new input sequence as well.
+document.addEventListener(
+  "keydown",
+  (event) => {
+    if (!event.repeat) suppressGestureClicks = false;
+  },
+  { capture: true },
+);
 $("play").addEventListener("click", () => {
   started = true;
   $("entry").hidden = true;

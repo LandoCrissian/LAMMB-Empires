@@ -1,0 +1,37 @@
+{
+  "initial": 2,
+  "retreating": 2,
+  "surviving": 2,
+  "nativeHeldSelection": true,
+  "retreatHP": [
+    {
+      "id": "u67",
+      "hp": 51
+    },
+    {
+      "id": "u68",
+      "hp": 125
+    }
+  ],
+  "survivorHP": [
+    {
+      "id": "u67",
+      "hp": 51
+    },
+    {
+      "id": "u68",
+      "hp": 125
+    }
+  ],
+  "retreatDistanceProgress": [
+    {
+      "id": "u67",
+      "tiles": 1.3123802058221177
+    },
+    {
+      "id": "u68",
+      "tiles": 1.224316854654484
+    }
+  ],
+  "aliveAtFirstInjury": 2
+}

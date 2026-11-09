@@ -1,0 +1,30 @@
+{
+  "configuredHoldMs": 320,
+  "observations": [
+    {
+      "requestedHoldMs": 0,
+      "deliveredMs": 0.7999999970197678,
+      "cueMs": null,
+      "intent": "pan"
+    },
+    {
+      "requestedHoldMs": 100,
+      "deliveredMs": 103.09999999403954,
+      "cueMs": null,
+      "intent": "pan"
+    },
+    {
+      "requestedHoldMs": 250,
+      "deliveredMs": 254.1000000089407,
+      "cueMs": null,
+      "intent": "pan"
+    },
+    {
+      "requestedHoldMs": 400,
+      "deliveredMs": 437.5,
+      "cueMs": 351.20000000298023,
+      "intent": "select"
+    }
+  ],
+  "nativeAutomation": "Chromium CDP, emulated viewport; not physical-device usability"
+}

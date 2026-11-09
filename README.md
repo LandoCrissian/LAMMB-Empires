@@ -29,17 +29,23 @@ A **Siege Workshop** produces slow, expensive **Siege Rams**. Rams deliver much 
 
 Use swordsmen to screen archers. Archers and towers fire from range, while rocky ridges obstruct ranged fire. Enemy raids begin after a preparation period and grow stronger. Attack the enemy settlement northeast; destroying all its barracks stops new reinforcements. Destroy its Town Center to win.
 
+Touch commands are direct: tap a friendly unit, then ground to move or an enemy to attack. Workers directed at valid supplies gather normally. Hold until the gold cue appears, then drag a rectangle to select living friendly units, or use **Area** without holding. An immediate drag pans; a second finger cancels selection and enables pan/pinch. Double-tap or double-click a friendly unit to select visible units of the same type. **Deselect** clears the selection.
+
+The command dock follows the selection: workers get Gather/Construct/Assist/Move/Stop, military gets Move/Attack/Hold/Assault/Retreat/Stop, and production buildings expose their own recruits, queue and rallies. Global Build and Recruit tabs remain available for settlement management.
+
+**Coordinated Assault** (K, then choose a target or ground) advances a mixed force along a shared strategic route. Infantry screen, rams stay near support, and archers take rear ranks. Short regroup and staging phases help at crossings and fortifications; actual units retain ordinary terrain paths, speed, weapon range and damage. **Retreat** (R, then choose reachable ground) disengages selected troops toward spaced destinations at normal speed. They remain vulnerable and accept new orders immediately. It grants no healing or stat bonus.
+
 Group movement uses loose ranks with melee troops ahead of archers. Units separate locally while keeping their terrain paths and orders. **Hold Position** keeps a soldier at its current location and only fires at targets already in weapon range; **Stop** cancels the current order and restores free defensive response. Enemy guards share nearby sightings, protect threatened structures, and rally raids before advancing.
 
 Phone landscape has a compact command dock, persistent resources and raid countdown, and separate **Objectives** and **Minimap** toggles. Rotating or changing browser viewport size preserves the expedition, selection, camera position and zoom. Fullscreen and orientation locking are not required.
 
-| Desktop                                            | Touch                                                   |
-| -------------------------------------------------- | ------------------------------------------------------- |
-| Click a unit or structure to select                | Tap a unit or structure to select                       |
-| Drag a selection box; Shift adds units             | Use **Workers** or **Army** to select groups            |
-| Right-click to move, gather or attack              | Choose **Move** or **Attack**, then tap the battlefield |
-| WASD/arrows pan; mouse wheel zooms                 | Drag to pan; two fingers pan and pinch to zoom          |
-| V workers · G army · H home · J hold · Space pause | Large dock controls and zoom buttons                    |
+| Desktop                                                      | Touch                                                      |
+| ------------------------------------------------------------ | ---------------------------------------------------------- |
+| Click a unit or structure to select                          | Tap a unit or structure, then tap ground/enemy to command  |
+| Drag a selection box; Shift adds units                       | Hold and drag, **Area**, **Workers** or **Army** to select |
+| Right-click to move, gather or attack                        | Tap ground to move; tap an enemy to attack                 |
+| WASD/arrows pan; mouse wheel zooms                           | Drag to pan; two fingers pan and pinch to zoom             |
+| V workers · G army · H home · J hold · K assault · R retreat | Large dock controls and zoom buttons                       |
 
 The in-game field guide explains these controls. Restart is available when paused and after victory or defeat.
 
@@ -50,16 +56,17 @@ npm run check
 npm test
 npm run test:balance
 npm run test:siege
+npm run test:command
 npx playwright install chromium webkit
 npm run test:browser
 npm run test:performance
 ```
 
-The Node suite checks pure rules and complete simulation behavior. Playwright preserves the earlier desktop/mobile suites and adds rally, siege production, rotation and control-reachability coverage in Chromium and WebKit. The performance script records local simulation, pathfinding, separation, Canvas drawing and frame-interval measurements. GitHub Actions runs the applicable suites and uploads browser evidence. See [Task004 verification](docs/TASK004_VERIFICATION.md) for this milestone, [Task003 verification](docs/TASK003_VERIFICATION.md) and [Task002 verification](docs/VERIFICATION.md) for the earlier baselines.
+The Node suite checks pure rules and complete simulation behavior. Playwright preserves the earlier desktop/mobile suites and adds rally, siege production, rotation and control-reachability coverage in Chromium and WebKit. The performance script records local simulation, pathfinding, separation, Canvas drawing and frame-interval measurements. GitHub Actions runs the applicable suites and uploads browser evidence. See [Task005 verification](docs/TASK005_VERIFICATION.md) for this milestone, [Task004 verification](docs/TASK004_VERIFICATION.md), [Task003 verification](docs/TASK003_VERIFICATION.md) and [Task002 verification](docs/VERIFICATION.md) for the earlier baselines.
 
 ## Architecture and product boundaries
 
-[Architecture](docs/ARCHITECTURE.md) describes simulation, AI, economy, combat, rendering and input boundaries. [Licenses](docs/LICENSES.md) records dependencies and artwork provenance.
+[Command design](docs/COMMAND_DESIGN.md) records the interaction contract and reference review. [Architecture](docs/ARCHITECTURE.md) describes simulation, AI, economy, combat, rendering and input boundaries. [Licenses](docs/LICENSES.md) records dependencies and artwork provenance.
 
 This milestone has one skirmish map, a limited roster, scheduled AI waves and no saved progression. The original legal-command balance driver remains within the intended 10–15-minute window for the checked seeds. The more aggressive siege scenario and its conventional control finish sooner; see the verification report for separate results rather than attributing the strategy change to siege alone. Difficulty still needs broad player testing. Browser viewport and WebKit tests do not establish physical iPhone compatibility or physical-device frame rate.
 

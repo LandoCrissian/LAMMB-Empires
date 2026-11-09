@@ -1523,3 +1523,256 @@ body.compact-landscape .entry-location {
     font-size: 8px;
   }
 }
+
+/* Contextual commands keep selection tools stable while the primary actions change. */
+.selection-column {
+  width: 210px;
+  flex: 0 0 210px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #91a7992b;
+  padding-right: 14px;
+  min-width: 0;
+}
+.selection-column .selection-info {
+  width: 100%;
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  padding: 0;
+}
+.selection-tools {
+  display: flex;
+  gap: 6px;
+  margin-top: 5px;
+}
+.selection-tools button {
+  min-width: 44px;
+  min-height: 44px;
+  padding: 4px 9px;
+  font-size: 13px;
+}
+.selection-tools button:last-child {
+  font-size: 23px;
+}
+.selection-tools button.active,
+.camera-tools button.active {
+  border-color: #dbbf7b;
+  background: #6f806d66;
+  color: #f2d69d;
+}
+.queue-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 7px;
+  margin-top: 5px;
+}
+.queue-list span {
+  font-size: 10px;
+  color: #ddc998;
+}
+.command-empty {
+  margin: 8px 0;
+  color: #b2c8bb;
+  font-size: 12px;
+  line-height: 1.5;
+  max-width: 420px;
+}
+#game-ui .camera-tools {
+  bottom: calc(var(--dock-height, 160px) + 30px + var(--safe-bottom));
+}
+#game-ui .camera-tools button {
+  min-width: 44px;
+  min-height: 44px;
+}
+#game-ui .hint {
+  bottom: calc(var(--dock-height, 160px) + 20px + var(--safe-bottom));
+}
+#selection-box.armed {
+  border-radius: 50%;
+  border: 2px solid #f5db9a;
+  background: #d9c68e24;
+  box-shadow: 0 0 0 5px #f1d39b1a;
+}
+#selection-box[data-phase="dragging"] {
+  border: 2px solid #f5db9a;
+  background: #e6cc8e25;
+}
+@media (max-width: 700px) {
+  .selection-column {
+    width: 100%;
+    flex: none;
+    display: flex;
+    flex-direction: row;
+    gap: 10px;
+    padding: 0 0 7px;
+    border-right: 0;
+    border-bottom: 1px solid #91a7992b;
+  }
+  .selection-column .selection-info {
+    min-height: 44px;
+    flex: 1;
+    padding: 0;
+  }
+  .selection-column .selection-tools {
+    flex: 0 0 auto;
+    margin-top: 0;
+    align-items: center;
+  }
+  .selection-column .selection-info .health-track {
+    display: none;
+  }
+  .selection-column .selection-info p {
+    font-size: 10px;
+  }
+  .selection-column .selection-info h3 {
+    font-size: 14px;
+  }
+  .selection-column .queue-list {
+    max-height: 30px;
+    overflow: auto;
+    margin-top: 2px;
+  }
+  .selection-column .queue-list span {
+    font-size: 9px;
+  }
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    overflow: visible;
+  }
+  .action {
+    min-width: 0;
+    min-height: 52px;
+    padding: 5px 6px;
+  }
+  .action .action-symbol {
+    font-size: 14px;
+    margin-right: 4px;
+  }
+  .action small {
+    margin-top: 4px;
+    font-size: 9px;
+  }
+  .command-empty {
+    grid-column: 1 / -1;
+    font-size: 11px;
+    min-height: 44px;
+    margin: 4px;
+  }
+  #game-ui .camera-tools {
+    bottom: calc(var(--dock-height, 230px) + 74px + var(--safe-bottom));
+  }
+  #game-ui .hint {
+    bottom: calc(var(--dock-height, 230px) + 20px + var(--safe-bottom));
+  }
+}
+body.compact-landscape .selection-column {
+  width: 132px;
+  flex: 0 0 132px;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 8px 0 0;
+  border-right: 1px solid #91a7992b;
+  border-bottom: 0;
+}
+body.compact-landscape .selection-column .selection-info {
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  flex: 1;
+  overflow: hidden;
+}
+body.compact-landscape .selection-info .portrait {
+  display: none;
+}
+body.compact-landscape .selection-info h3 {
+  font-size: 12px;
+  margin: 0 0 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.compact-landscape .selection-info p {
+  font-size: 10px;
+  line-height: 1.3;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.compact-landscape .selection-column .selection-info .health-track {
+  display: none;
+}
+body.compact-landscape .selection-tools {
+  margin-top: 3px;
+  flex: 0 0 44px;
+}
+body.compact-landscape .selection-tools button {
+  padding: 3px 5px;
+  font-size: 11px;
+}
+body.compact-landscape .selection-tools button:last-child {
+  font-size: 22px;
+}
+body.compact-landscape .queue-list {
+  margin-top: 2px;
+  gap: 2px 5px;
+  max-height: 24px;
+  overflow: auto;
+}
+body.compact-landscape .queue-list span {
+  font-size: 9px;
+}
+body.compact-landscape .actions {
+  display: flex;
+  overflow: visible;
+  gap: 4px;
+}
+body.compact-landscape .action {
+  min-width: 0;
+  flex: 1 1 0;
+  height: 44px;
+  min-height: 44px;
+  padding: 4px 5px;
+}
+body.compact-landscape .action strong {
+  font-size: 11px;
+}
+body.compact-landscape .action .action-symbol {
+  font-size: 12px;
+  margin-right: 3px;
+}
+body.compact-landscape .action small {
+  margin-top: 2px;
+  font-size: 9px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+body.compact-landscape .command-empty {
+  font-size: 11px;
+  min-height: 44px;
+  margin: 3px 0;
+}
+#game-ui.compact-landscape .hint,
+body.compact-landscape #game-ui .hint {
+  bottom: calc(var(--dock-height, 108px) + 16px + var(--safe-bottom));
+}
+body.compact-landscape #game-ui .camera-tools {
+  bottom: calc(var(--dock-height, 108px) + 18px + var(--safe-bottom));
+}
+@media (max-width: 720px) {
+  body.compact-landscape .selection-column {
+    width: 106px;
+    flex-basis: 106px;
+    padding-right: 5px;
+  }
+  body.compact-landscape .action {
+    padding: 4px 3px;
+  }
+  body.compact-landscape .action .action-symbol {
+    display: none;
+  }
+}

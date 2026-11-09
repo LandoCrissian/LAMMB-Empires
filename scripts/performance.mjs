@@ -6,6 +6,7 @@ import { spawn } from "node:child_process";
 import { chromium } from "@playwright/test";
 import { playSkirmish } from "./balance-check.mjs";
 import { playSiegeSkirmish } from "./siege-balance-check.mjs";
+import { playCommandSkirmish } from "./command-balance-check.mjs";
 import { command, stepGame } from "../src/sim/world.mjs";
 import {
   enableMovementDiagnostics,
@@ -105,6 +106,91 @@ for (let repeat = 0; repeat < 10; repeat++) {
 const siegeMovement = getMovementDiagnostics();
 enableMovementDiagnostics(false);
 
+// Keep the Task004 comparison above unchanged. These separate legal fixtures
+// retain their existing orders throughout each sample, so benchmarking does not
+// silently cancel the new cohort/retreat behavior with legacy movement orders.
+const commandFixtures = [
+  { name: "assault", state: playCommandSkirmish(5280, 355).state },
+  { name: "retreat", state: playCommandSkirmish(5280, 375).state },
+];
+for (const item of commandFixtures)
+  if (
+    !item.state.units.some(
+      (u) => u.faction === "player" && u.order.type === item.name,
+    )
+  )
+    throw new Error(
+      `The legal ${item.name} fixture must contain its active order.`,
+    );
+const tacticalSimulation = commandFixtures.map((item) => {
+  const times = [];
+  let maximumUnits = 0;
+  enableMovementDiagnostics(true);
+  resetMovementDiagnostics();
+  for (let repeat = 0; repeat < 10; repeat++) {
+    const state = structuredClone(item.state);
+    for (let tick = 0; tick < 400 && state.status === "playing"; tick++) {
+      const begin = performance.now();
+      stepGame(state);
+      times.push(performance.now() - begin);
+      maximumUnits = Math.max(maximumUnits, state.units.length);
+    }
+  }
+  const movement = getMovementDiagnostics();
+  enableMovementDiagnostics(false);
+  return {
+    name: item.name,
+    fixtureTime: item.state.time,
+    fixtureUnits: item.state.units.length,
+    activeUnits: item.state.units.filter(
+      (u) => u.faction === "player" && u.order.type === item.name,
+    ).length,
+    maximumUnits,
+    steps: summary(times),
+    movement,
+    ordersReplacedDuringSteps: false,
+  };
+});
+const assaultCommandTimes = [],
+  retreatCommandTimes = [];
+enableMovementDiagnostics(true);
+resetMovementDiagnostics();
+for (let repeat = 0; repeat < 10; repeat++) {
+  const state = structuredClone(commandFixtures[0].state);
+  const ids = state.units
+    .filter((u) => u.faction === "player" && u.type !== "worker" && u.hp > 0)
+    .map((u) => u.id);
+  const target = state.buildings.find(
+    (b) => b.faction === "enemy" && b.type === "townCenter",
+  );
+  let begin = performance.now();
+  const assault = command(state, {
+    type: "order",
+    ids,
+    order: { type: "assault", targetId: target.id },
+  });
+  assaultCommandTimes.push(performance.now() - begin);
+  if (!assault.ok)
+    throw new Error(`Assault benchmark rejected: ${assault.reason}`);
+  begin = performance.now();
+  const retreat = command(state, {
+    type: "order",
+    ids,
+    order: { type: "retreat", x: 18.5, y: 25.5 },
+  });
+  retreatCommandTimes.push(performance.now() - begin);
+  if (!retreat.ok)
+    throw new Error(`Retreat benchmark rejected: ${retreat.reason}`);
+}
+const tacticalCommandCosts = {
+  assault: summary(assaultCommandTimes),
+  retreat: summary(retreatCommandTimes),
+  acceptedAssault: 10,
+  acceptedRetreat: 10,
+  movement: getMovementDiagnostics(),
+};
+enableMovementDiagnostics(false);
+
 const base = process.env.FRONTIER_BASE_URL || "http://127.0.0.1:4173";
 let server;
 try {
@@ -146,8 +232,8 @@ const report = {
     movement,
   },
   browser: [],
-  baselineTask003: JSON.parse(
-    await readFile("docs/performance/task003.json", "utf8"),
+  baselineTask004: JSON.parse(
+    await readFile("docs/performance/task004.json", "utf8"),
   ),
   siegeFixture: {
     time: siegeFixture.time,
@@ -162,6 +248,8 @@ const report = {
     },
     movement: siegeMovement,
   },
+  tacticalSimulation,
+  tacticalCommandCosts,
 };
 const browser = await chromium.launch();
 report.environment.chromium = browser.version();
@@ -206,7 +294,7 @@ try {
     );
     await page.goto(`${base}/benchmark`);
     const render = await page.evaluate(
-      async ({ state, siegeState }) => {
+      async ({ state, siegeState, tacticalStates }) => {
         const { Battlefield } = await import("/src/render/battlefield.mjs");
         const renderer = new Battlefield(document.querySelector("canvas"));
         const view = { x: 20, y: 19, zoom: innerWidth < 1000 ? 0.8 : 1.1 };
@@ -330,6 +418,65 @@ try {
           };
           requestAnimationFrame(frame);
         });
+        const tacticalRenders = [];
+        for (const item of tacticalStates) {
+          const tacticalView = {
+            x: 25,
+            y: 20,
+            zoom: innerWidth < 1000 ? 0.8 : 1.1,
+          };
+          renderer.draw(item.state, tacticalView, new Set(), null, 0);
+          if (!renderer.terrainStatus().ready)
+            await new Promise((resolve) => {
+              const frame = (now) => {
+                renderer.draw(
+                  item.state,
+                  tacticalView,
+                  new Set(),
+                  null,
+                  now / 1000,
+                );
+                if (renderer.terrainStatus().ready) resolve();
+                else requestAnimationFrame(frame);
+              };
+              requestAnimationFrame(frame);
+            });
+          const durations = [],
+            gaps = [];
+          let prior;
+          const selected = new Set(
+            item.state.units
+              .filter((u) => u.faction === "player")
+              .map((u) => u.id),
+          );
+          await new Promise((resolve) => {
+            const frame = (now) => {
+              if (prior !== undefined) gaps.push(now - prior);
+              prior = now;
+              const begin = performance.now();
+              renderer.draw(
+                item.state,
+                tacticalView,
+                selected,
+                null,
+                now / 1000,
+              );
+              durations.push(performance.now() - begin);
+              if (durations.length < 120) requestAnimationFrame(frame);
+              else resolve();
+            };
+            requestAnimationFrame(frame);
+          });
+          tacticalRenders.push({
+            name: item.name,
+            units: item.state.units.length,
+            activeUnits: item.state.units.filter(
+              (u) => u.faction === "player" && u.order.type === item.name,
+            ).length,
+            durations,
+            gaps,
+          });
+        }
         return {
           coldDrawMs,
           terrainPreparation,
@@ -338,9 +485,14 @@ try {
           denseSamples,
           denseIntervals,
           siegeSamples,
+          tacticalRenders,
         };
       },
-      { state: fixture, siegeState: siegeFixture },
+      {
+        state: fixture,
+        siegeState: siegeFixture,
+        tacticalStates: commandFixtures,
+      },
     );
     report.browser.push({
       ...config,
@@ -369,6 +521,14 @@ try {
         rams: siegeFixture.units.filter((u) => u.type === "ram").length,
         draw: summary(render.siegeSamples),
       },
+      tacticalArmyFixtures: render.tacticalRenders.map((item) => ({
+        name: item.name,
+        units: item.units,
+        activeUnits: item.activeUnits,
+        draw: summary(item.durations),
+        frameInterval: summary(item.gaps),
+        intervalsOver50Ms: item.gaps.filter((n) => n > 50).length,
+      })),
     });
     await context.close();
   }
@@ -377,39 +537,39 @@ try {
   if (server) server.kill();
 }
 await mkdir("docs/performance", { recursive: true });
-report.comparisonToTask003 = {
+report.comparisonToTask004 = {
   note: "Same host and equivalent conventional240-second/29-unit scenario. Timings are single-run measurements and can vary; siege375-second fixture is a different workload and reported separately.",
   simulationStepP95Ms: {
-    task003: report.baselineTask003.simulation.steps.p95Ms,
-    task004: report.simulation.steps.p95Ms,
+    task004: report.baselineTask004.simulation.steps.p95Ms,
+    task005: report.simulation.steps.p95Ms,
   },
   groupOrderP95Ms: {
-    task003: report.baselineTask003.simulation.groupOrders.p95Ms,
-    task004: report.simulation.groupOrders.p95Ms,
+    task004: report.baselineTask004.simulation.groupOrders.p95Ms,
+    task005: report.simulation.groupOrders.p95Ms,
   },
   browser: report.browser.map((current) => {
-    const prior = report.baselineTask003.browser.find(
+    const prior = report.baselineTask004.browser.find(
       (b) => b.name === current.name,
     );
     return {
       name: current.name,
       liveDrawP95Ms: {
-        task003: prior?.live.metrics.renderMs.p95,
-        task004: current.live.metrics.renderMs.p95,
+        task004: prior?.live.metrics.renderMs.p95,
+        task005: current.live.metrics.renderMs.p95,
       },
       warmArmyDrawP95Ms: {
-        task003: prior?.armyFixture.draw.p95Ms,
-        task004: current.armyFixture.draw.p95Ms,
+        task004: prior?.armyFixture.draw.p95Ms,
+        task005: current.armyFixture.draw.p95Ms,
       },
       coldDrawMs: {
-        task003: prior?.armyFixture.coldDrawMs,
-        task004: current.armyFixture.coldDrawMs,
+        task004: prior?.armyFixture.coldDrawMs,
+        task005: current.armyFixture.coldDrawMs,
       },
     };
   }),
 };
 await writeFile(
-  "docs/performance/task004.json",
+  "docs/performance/task005.json",
   `${JSON.stringify(report, null, 2)}\n`,
 );
 console.log(JSON.stringify(report, null, 2));

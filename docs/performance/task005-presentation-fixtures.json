@@ -1,0 +1,155 @@
+{
+  "note": "Unmodified normal-command match states, rendered separately from real UI tests; no injected units, supplies, HP or combat events.",
+  "fixtures": [
+    {
+      "name": "assault",
+      "time": 355,
+      "army": 14,
+      "rams": 2,
+      "archers": 4,
+      "swordsmen": 8,
+      "activeOrders": [
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault"
+      ],
+      "cohortPhases": [
+        "advance"
+      ],
+      "view": {
+        "x": 22.68314162595439,
+        "y": 24.071070677735605,
+        "zoom": 1.25
+      },
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "scale": 1
+      },
+      "file": "docs/screenshots/task005/cohort-assault-legal-desktop.png"
+    },
+    {
+      "name": "retreat",
+      "time": 375,
+      "army": 13,
+      "rams": 2,
+      "archers": 4,
+      "swordsmen": 7,
+      "activeOrders": [
+        "retreat",
+        "retreat",
+        "idle",
+        "idle",
+        "idle",
+        "retreat",
+        "idle",
+        "idle",
+        "retreat",
+        "idle",
+        "idle",
+        "retreat",
+        "retreat"
+      ],
+      "cohortPhases": [],
+      "view": {
+        "x": 16.537960070440324,
+        "y": 25.56559991488174,
+        "zoom": 1.25
+      },
+      "viewport": {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "scale": 1
+      },
+      "file": "docs/screenshots/task005/cohort-retreat-legal-desktop.png"
+    },
+    {
+      "name": "assault",
+      "time": 355,
+      "army": 14,
+      "rams": 2,
+      "archers": 4,
+      "swordsmen": 8,
+      "activeOrders": [
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault",
+        "assault"
+      ],
+      "cohortPhases": [
+        "advance"
+      ],
+      "view": {
+        "x": 22.68314162595439,
+        "y": 24.071070677735605,
+        "zoom": 1.25
+      },
+      "viewport": {
+        "name": "mobile-landscape",
+        "width": 844,
+        "height": 390,
+        "scale": 2
+      },
+      "file": "docs/screenshots/task005/cohort-assault-legal-mobile-landscape.png"
+    },
+    {
+      "name": "retreat",
+      "time": 375,
+      "army": 13,
+      "rams": 2,
+      "archers": 4,
+      "swordsmen": 7,
+      "activeOrders": [
+        "retreat",
+        "retreat",
+        "idle",
+        "idle",
+        "idle",
+        "retreat",
+        "idle",
+        "idle",
+        "retreat",
+        "idle",
+        "idle",
+        "retreat",
+        "retreat"
+      ],
+      "cohortPhases": [],
+      "view": {
+        "x": 16.537960070440324,
+        "y": 25.56559991488174,
+        "zoom": 1.25
+      },
+      "viewport": {
+        "name": "mobile-landscape",
+        "width": 844,
+        "height": 390,
+        "scale": 2
+      },
+      "file": "docs/screenshots/task005/cohort-retreat-legal-mobile-landscape.png"
+    }
+  ]
+}

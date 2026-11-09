@@ -62,6 +62,14 @@ export class HUD {
     this.lastSelection = "";
     this.lastToast = 0;
     this.compact = null;
+    // Resize changes presentation offsets only; the tactical camera stays fixed.
+    this.dockObserver = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty(
+        "--dock-height",
+        `${entry.target.getBoundingClientRect().height}px`,
+      );
+    });
+    this.dockObserver.observe(document.querySelector(".command-dock"));
     this.panels = {
       regular: { objectives: true, minimap: true },
       compact: { objectives: false, minimap: false },
@@ -228,10 +236,11 @@ export class HUD {
                 gather: "Gathering supplies",
                 build: "Building settlement",
                 move: "Moving to position",
+                retreat: "Retreating to regroup",
                 idle: "Ready for an assignment",
                 attack: "Defending the settlement",
               }[entity.order.type] || "Following orders"
-            : `${entity.type === "ram" ? "Siege / escort" : UNIT_TYPES[entity.type]?.range > 2 ? "Ranged" : "Melee"} · ${entity.order.type === "hold" ? "Holding fire line" : entity.order.type === "idle" ? "Ready / defensive" : "Following orders"}`;
+            : `${entity.type === "ram" ? "Siege / escort" : UNIT_TYPES[entity.type]?.range > 2 ? "Ranged" : "Melee"} · ${entity.order.type === "assault" ? `Assault · ${entity.order.phase || "regroup"}` : entity.order.type === "retreat" ? "Retreating / regrouping" : entity.order.type === "hold" ? "Holding fire line" : entity.order.type === "idle" ? "Ready / defensive" : "Following orders"}`;
       if (entity.queue?.length)
         detail = entity.spawnBlocked
           ? `${labels[entity.queue[0].unitType]} ready · Clear the production exit`
@@ -243,16 +252,79 @@ export class HUD {
       hp = entity.maxHp ? `${Math.ceil(entity.hp)} / ${entity.maxHp}` : "";
       health = entity.maxHp ? entity.hp / entity.maxHp : 0;
     } else if (selected.length > 1) {
-      title = `${selected.length} units selected`;
+      title = this.compact
+        ? `${selected.length} selected`
+        : `${selected.length} units selected`;
       symbol = "⚔";
-      detail = `${workers.length} workers · ${units.length - workers.length} soldiers`;
+      const count = (type) => units.filter((u) => u.type === type).length;
+      detail = [
+        [workers.length, "workers"],
+        [count("swordsman"), "melee"],
+        [count("archer"), "archers"],
+        [count("ram"), "rams"],
+        [own.length - units.length, "buildings"],
+      ]
+        .filter(([n]) => n)
+        .map(([n, role]) => `${n} ${role}`)
+        .join(" · ");
+      const tactical = units.filter((u) =>
+        ["assault", "retreat"].includes(u.order.type),
+      );
+      if (tactical.length)
+        detail += ` · ${tactical[0].order.type === "retreat" ? "Retreating" : tactical[0].order.phase || "Regrouping"}`;
       health = 1;
     }
-    const info = `<div class="portrait" aria-hidden="true">${symbol}</div><div class="selection-details"><h3>${title}</h3><p>${detail}</p></div>${health ? `<div class="health-track"><span style="width:${Math.max(0, health * 100)}%"></span></div><p class="selection-hp">${hp}</p>` : ""}`;
+    const queue = producer?.queue?.length
+      ? `<div class="queue-list" aria-label="Training queue">${producer.queue.map((q, i) => `<span>${i + 1}. ${labels[q.unitType]}${i === 0 ? ` · ${Math.ceil(q.remaining)}s` : ""}</span>`).join("")}</div>`
+      : "";
+    const info = `<div class="portrait" aria-hidden="true">${symbol}</div><div class="selection-details"><h3>${title}</h3><p>${detail}</p>${queue}</div>${health ? `<div class="health-track"><span style="width:${Math.max(0, health * 100)}%"></span></div><p class="selection-hp">${hp}</p>` : ""}`;
     if (info !== this.lastSelection) {
       el("selection-info").innerHTML = info;
       this.lastSelection = info;
     }
+    const soldiers = units.filter((u) => u.type !== "worker");
+    const recruit = (type, building = null) => {
+      const queued = (
+        building
+          ? building.queue
+          : state.buildings
+              .filter((b) => b.faction === "player")
+              .flatMap((b) => b.queue)
+      ).filter((q) => q.unitType === type).length;
+      const def = UNIT_TYPES[type];
+      return action(
+        `train-${type}`,
+        `${labels[type]}${queued ? ` (${queued})` : ""}`,
+        symbols[type],
+        !ready(def.producer)
+          ? `Needs ${labels[def.producer]}`
+          : price(def.cost),
+        {
+          label: labels[type],
+          disabled:
+            population(state) >= POPULATION_CAP ||
+            !canAfford(state.resources, def.cost) ||
+            !ready(def.producer),
+        },
+      );
+    };
+    const selectedMode = (type, title, symbol, text, disabled = false) =>
+      action(`mode-${type}`, title, symbol, text, {
+        active: mode === type,
+        disabled,
+      });
+    el("select-area").classList.toggle("active", mode === "box");
+    el("select-area").setAttribute("aria-pressed", String(mode === "box"));
+    el("deselect").disabled = !selected.length;
+    el("pan-control").classList.toggle("active", mode === "pan");
+    el("pan-control").setAttribute("aria-pressed", String(mode === "pan"));
+    el("actions").dataset.context = producer
+      ? "production"
+      : soldiers.length
+        ? "military"
+        : workers.length
+          ? "workers"
+          : "empty";
     let actions = "";
     if (mode === "rally") {
       actions =
@@ -277,7 +349,7 @@ export class HUD {
           "✓",
           ghost
             ? ghost.ok
-              ? costText(BUILDING_TYPES[buildType].cost)
+              ? price(BUILDING_TYPES[buildType].cost)
               : ghost.reason || "Invalid location"
             : "Tap a location on the field",
           { disabled: !ghost?.ok },
@@ -299,105 +371,50 @@ export class HUD {
         .join("");
     } else if (this.tab === "train") {
       actions = ["worker", "swordsman", "archer", "ram"]
-        .map((type) => {
-          const queued = state.buildings
-            .filter((b) => b.faction === "player")
-            .flatMap((b) => b.queue)
-            .filter((item) => item.unitType === type).length;
-          return action(
-            `train-${type}`,
-            `${labels[type]}${queued ? ` (${queued})` : ""}`,
-            symbols[type],
-            `${price(UNIT_TYPES[type].cost)}${!ready(UNIT_TYPES[type].producer) ? ` · Needs ${type === "ram" ? "workshop" : labels[UNIT_TYPES[type].producer]}` : ""}`,
-            {
-              label: labels[type],
-              disabled:
-                population(state) >= POPULATION_CAP ||
-                !canAfford(state.resources, UNIT_TYPES[type].cost) ||
-                !ready(UNIT_TYPES[type].producer),
-            },
-          );
-        })
+        .map((type) => recruit(type))
         .join("");
     } else if (producer) {
       actions =
+        Object.keys(UNIT_TYPES)
+          .filter((type) => UNIT_TYPES[type].producer === producer.type)
+          .map((type) => recruit(type, producer))
+          .join("") +
         action(
           "set-rally",
-          "Set Rally Point",
+          "Set Rally",
           "⚑",
-          producer.type === "townCenter"
-            ? "Move or gather · future workers"
-            : "Move · future recruits",
+          producer.type === "townCenter" ? "Move / gather" : "Future recruits",
+          { label: "Set Rally Point" },
         ) +
-        action(
-          "clear-rally",
-          "Clear Rally",
-          "×",
-          "New units wait at the exit",
-          { disabled: !producer.rally },
-        );
-    } else {
-      actions =
-        action(
-          "mode-box",
-          "Select Area",
-          "▱",
-          this.compact ? "Drag to select" : "Drag over friendly units",
-          { active: mode === "box" },
-        ) +
-        action(
-          "mode-move",
-          "Move",
-          "➤",
-          this.compact ? "Destination" : "Choose a destination",
-          {
-            active: mode === "move",
-            disabled: !units.length,
-          },
-        ) +
-        action(
-          "mode-attack",
-          "Attack",
-          "⚔",
-          this.compact ? "Target / advance" : "Target or attack-move",
-          {
-            active: mode === "attack",
-            disabled: !units.length,
-          },
-        ) +
-        action(
-          "hold",
-          "Hold",
-          "⊙",
-          this.compact ? "Range only" : "Fire in range · no pursuit",
-          {
+        action("clear-rally", "Clear Rally", "×", "Idle at exit", {
+          disabled: !producer.rally,
+        });
+    } else if (units.length) {
+      if (!soldiers.length) {
+        actions =
+          selectedMode("gather", "Gather", "♧", "Tap a source") +
+          action("construct", "Construct", "⚒", "Choose a building") +
+          (state.buildings.some(
+            (b) => b.faction === "player" && b.progress < 1 && b.hp > 0,
+          )
+            ? selectedMode("assist", "Assist", "+", "Tap construction")
+            : "") +
+          selectedMode("move", "Move", "➤", "Choose ground") +
+          action("stop", "Stop", "◇", "End assignment");
+      } else {
+        actions =
+          selectedMode("move", "Move", "➤", "Choose ground") +
+          selectedMode("attack", "Attack", "⚔", "Target / advance") +
+          action("hold", "Hold", "⊙", "Range only · J", {
             label: "Hold Position",
-            active:
-              units.length > 0 && units.every((u) => u.order.type === "hold"),
-            disabled: !units.length,
-          },
-        ) +
-        action(
-          "stop",
-          "Stop",
-          "◇",
-          this.compact ? "Defend freely" : "Cancel · defend freely",
-          {
-            disabled: !units.length,
-          },
-        ) +
-        action(
-          "mode-pan",
-          "Pan",
-          "✥",
-          this.compact ? "Explore" : "Drag to explore",
-          {
-            active: mode === "pan",
-          },
-        ) +
-        (units.length
-          ? action("clear-selection", "Deselect", "×", "Clear selected units")
-          : "");
+            active: soldiers.every((u) => u.order.type === "hold"),
+          }) +
+          selectedMode("assault", "Assault", "⚑", "Together · K", false) +
+          selectedMode("retreat", "Retreat", "↩", "Regroup · R", false) +
+          action("stop", "Stop", "◇", "Defend freely");
+      }
+    } else {
+      actions = `<p class="command-empty">${selected.length ? "Select friendly units to issue orders." : "Tap a unit to command. Hold and drag, or choose Area, to select a group."}</p>`;
     }
     if (actions !== this.lastActions) {
       el("actions").innerHTML = actions;
@@ -408,27 +425,35 @@ export class HUD {
         ? "Select Area armed: drag a rectangle over friendly units. Tap Select Area again to cancel."
         : mode === "rally"
           ? rallyGhost
-          ? rallyGhost.ok
-            ? "Preview ready. Confirm Rally to save this producer's instruction."
-            : rallyGhost.reason || "Choose a reachable destination."
-          : "Tap a reachable destination. Town Center workers can rally to deposits or farms."
-        : buildType
-          ? `${labels[buildType]} · ${ghost ? (ghost.ok ? "Valid location. Confirm to begin construction." : ghost.reason || "Choose open ground near your settlement.") : "Choose a location near your settlement."}`
-          : mode === "attack"
-            ? "Tap an enemy to focus fire, or ground to attack-move."
-            : mode === "move"
-              ? "Tap the field to move your selected units."
-              : mode === "pan"
-                ? "Drag to explore. Tap Pan again to select units."
-                : workers.length
-                  ? "Tap trees, stone, gold or a farm to gather. Build to expand."
-                  : army.length && units.length
-                    ? touch
-                      ? "Tap ground to move, or an enemy to attack. Hold then drag to select several."
-                      : "Right-click to command, or choose Move / Attack then tap."
-                    : touch
-                      ? "Tap a unit to select. Hold then drag to select several; drag immediately to pan."
-                      : "Select a unit. Drag a selection box; WASD to explore.";
+            ? rallyGhost.ok
+              ? "Preview ready. Confirm Rally to save this producer's instruction."
+              : rallyGhost.reason || "Choose a reachable destination."
+            : "Tap a reachable destination. Town Center workers can rally to deposits or farms."
+          : mode === "assault"
+            ? "Tap an enemy or approach point. Infantry lead, archers support, and rams stay with the force."
+            : mode === "retreat"
+              ? "Tap reachable ground to regroup. Retreat keeps normal speed and units remain vulnerable."
+              : mode === "gather"
+                ? "Tap a resource deposit or a completed friendly farm."
+                : mode === "assist"
+                  ? "Tap an unfinished friendly building to help construct it."
+                  : buildType
+                    ? `${labels[buildType]} · ${ghost ? (ghost.ok ? "Valid location. Confirm to begin construction." : ghost.reason || "Choose open ground near your settlement.") : "Choose a location near your settlement."}`
+                    : mode === "attack"
+                      ? "Tap an enemy to focus fire, or ground to attack-move."
+                      : mode === "move"
+                        ? "Tap the field to move your selected units."
+                        : mode === "pan"
+                          ? "Drag to explore. Tap Pan again to select units."
+                          : workers.length
+                            ? "Tap trees, stone, gold or a farm to gather. Build to expand."
+                            : army.length && units.length
+                              ? touch
+                                ? "Tap ground to move, or an enemy to attack. Hold then drag to select several."
+                                : "Right-click to command, or choose Move / Attack then tap."
+                              : touch
+                                ? "Tap a unit to select. Hold then drag to select several; drag immediately to pan."
+                                : "Select a unit. Drag a selection box; WASD to explore.";
     if (performance.now() - this.lastToast > (this.toastDuration || 3600))
       el("toast").classList.remove("visible");
   }

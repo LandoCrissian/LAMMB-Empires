@@ -4,6 +4,8 @@ export default defineConfig({
   testDir: "./tests/browser",
   timeout: 30_000,
   fullyParallel: false,
+  // Bound simultaneous animated battlefields and retained failure diagnostics.
+  workers: 2,
   use: {
     baseURL: "http://127.0.0.1:4173",
     // Keep DOM/source traces without continuously recording the animated canvas.
@@ -20,11 +22,14 @@ export default defineConfig({
     {
       name: "desktop-chromium",
       testMatch: ["**/frontier.spec.mjs", "**/command-first.spec.mjs"],
+      // Native-touch capability is exercised in the two mobile Chromium contexts.
+      grepInvert: /native touch|battlefield journey/,
       use: { browserName: "chromium", viewport: { width: 1440, height: 900 } },
     },
     {
       name: "mobile-chromium",
-      testMatch: "**/frontier.spec.mjs",
+      testMatch: ["**/frontier.spec.mjs", "**/command-first.spec.mjs"],
+      grepInvert: /battlefield journey/,
       use: {
         browserName: "chromium",
         viewport: { width: 390, height: 844 },
@@ -46,7 +51,8 @@ export default defineConfig({
     },
     {
       name: "landscape-webkit",
-      testMatch: "**/landscape.spec.mjs",
+      testMatch: ["**/landscape.spec.mjs", "**/command-first.spec.mjs"],
+      grepInvert: /battlefield journey/,
       use: {
         browserName: "webkit",
         viewport: { width: 390, height: 844 },

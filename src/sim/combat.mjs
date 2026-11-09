@@ -8,6 +8,7 @@ import {
   event,
 } from "./geometry.mjs";
 import { blocked, clearPath, moveToward, reachable } from "./movement.mjs";
+import { assaultCohort } from "./tactics.mjs";
 
 export function enemies(state, faction) {
   return [...state.units, ...state.buildings].filter(
@@ -219,7 +220,7 @@ export function updateCombatUnit(state, unit, dt) {
     order = unit.order;
   unit.combatTargetId = null;
   unit.cooldown = Math.max(0, unit.cooldown - dt);
-  if (order.type === "move") {
+  if (order.type === "move" || order.type === "retreat") {
     if (moveToward(state, unit, order, 0.2, dt, def.speed))
       unit.order = { type: "idle" };
     return;
@@ -229,6 +230,60 @@ export function updateCombatUnit(state, unit, dt) {
     return;
   }
   let target;
+  const cohort = order.type === "assault" ? assaultCohort(state, unit) : null;
+  if (order.type === "assault") {
+    if (!cohort) {
+      unit.order = { type: "idle" };
+      clearPath(unit);
+      return;
+    }
+    const leash = Math.max(
+      unit.type === "ram" ? 4.5 : 3.25,
+      Math.sqrt(cohort.ids.length) * 0.7 + 1,
+    );
+    if (distance(unit, cohort.anchor) > leash + 0.7) order.returning = true;
+    else if (distance(unit, cohort.anchor) < leash - 0.5)
+      order.returning = false;
+    const mayRespond = (candidate) => {
+      if (!lineOfSight(state, unit, candidate)) return false;
+      const inReach = distanceTo(unit, candidate) <= def.range + 0.05;
+      // A separated or returning soldier can always defend within actual weapon
+      // range. Only pursuit is tethered to the cohort, never legitimate fire.
+      return (
+        inReach ||
+        (!order.returning &&
+          distanceTo(cohort.anchor, candidate) <=
+            Math.min(6, leash + def.range) &&
+          (cohort.phase === "engage" ||
+            distanceTo(unit, candidate) <=
+              (unit.type === "ram" || def.range > 2 ? def.range + 0.05 : 3)))
+      );
+    };
+    const designated = byId(state, cohort.targetId);
+    target =
+      unit.type === "ram" &&
+      designated?.faction === "enemy" &&
+      mayRespond(designated)
+        ? designated
+        : findTarget(state, unit, def.sight, mayRespond);
+    if (
+      unit.type === "ram" &&
+      target &&
+      distanceTo(unit, target) > def.range + 0.05
+    ) {
+      const escorts = state.units.filter(
+        (candidate) =>
+          candidate.hp > 0 &&
+          candidate.type !== "ram" &&
+          cohort.ids.includes(candidate.id),
+      );
+      if (
+        escorts.length &&
+        !escorts.some((escort) => distance(escort, unit) <= 3.5)
+      )
+        target = null;
+    }
+  }
   if (order.type === "hold") {
     target = findTarget(state, unit, def.range + 0.05, (candidate) =>
       unit.type === "ram"
@@ -315,6 +370,10 @@ export function updateCombatUnit(state, unit, dt) {
         moveToward(state, unit, target, range, dt, def.speed);
       }
     }
+    return;
+  }
+  if (order.type === "assault") {
+    moveToward(state, unit, order, 0.2, dt, def.speed);
     return;
   }
   if (order.type === "attackMove") {

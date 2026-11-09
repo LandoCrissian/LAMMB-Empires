@@ -14,6 +14,57 @@ const importance = (building) =>
       ? 2
       : 1;
 
+// Home anchors are attached to surviving structures. Losing a forward barracks
+// causes its guards to walk back to another useful defensive position.
+function maintainGuardHomes(state, guards, structures) {
+  if (!structures.length) return;
+  const relocating = new Map();
+  for (const guard of guards.filter((unit) => !unit.raiding)) {
+    if (!guard.homeStructureId) {
+      guard.homeStructureId = structures
+        .slice()
+        .sort(
+          (a, b) =>
+            distanceTo(guard.home || guard, a) -
+              distanceTo(guard.home || guard, b) ||
+            importance(b) - importance(a) ||
+            a.id.localeCompare(b.id),
+        )[0].id;
+      continue;
+    }
+    if (structures.some((building) => building.id === guard.homeStructureId))
+      continue;
+    const replacement = structures
+      .slice()
+      .sort(
+        (a, b) =>
+          distanceTo(guard, a) - distanceTo(guard, b) ||
+          importance(b) - importance(a) ||
+          a.id.localeCompare(b.id),
+      )[0];
+    if (!relocating.has(replacement.id)) relocating.set(replacement.id, []);
+    relocating.get(replacement.id).push(guard);
+    guard.homeStructureId = replacement.id;
+  }
+  for (const [id, troops] of relocating) {
+    const building = structures.find((candidate) => candidate.id === id);
+    const goal = nearestOpen(
+      state,
+      building.x - 1,
+      building.y + building.height + 1,
+    );
+    if (!goal) continue;
+    for (const slot of formationDestinations(state, troops, goal)) {
+      const guard = troops.find((unit) => unit.id === slot.id);
+      guard.home = { x: slot.x, y: slot.y };
+      if (guard.aiRole !== "rally") {
+        guard.order = { type: "idle" };
+        clearPath(guard);
+      }
+    }
+  }
+}
+
 function groupOrder(state, units, destination) {
   for (const point of formationDestinations(state, units, destination)) {
     const unit = units.find((candidate) => candidate.id === point.id);
@@ -38,8 +89,10 @@ function coordinateDefense(state, guards, structures) {
       )
         continue;
       const attacking =
-        opponent.order.type === "attack" &&
-        opponent.order.targetId === building.id;
+        (opponent.order.type === "attack" &&
+          opponent.order.targetId === building.id) ||
+        (opponent.order.type === "assault" &&
+          opponent.combatTargetId === building.id);
       reports.push({
         building,
         opponent,
@@ -253,6 +306,7 @@ export function updateAI(state) {
   }
   if (state.time >= (ai.nextDecision || 0)) {
     ai.nextDecision = state.time + DECISION_INTERVAL;
+    maintainGuardHomes(state, guards, structures);
     coordinateDefense(state, guards, structures);
     coordinateSiegeDefense(state, guards, structures);
     coordinateRaid(state, guards);

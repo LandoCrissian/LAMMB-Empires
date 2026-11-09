@@ -115,12 +115,27 @@ async function checkCommands(page) {
     "Command",
     "Build",
     "Recruit",
+    "Select Area",
+    "Pan",
   ])
     await reachable(button(page, name), { minimum: 44 });
   await button(page, "Army").tap();
   await button(page, "Command").tap();
-  for (const name of ["Move", "Attack", "Hold Position", "Stop", "Pan"])
+  for (const name of [
+    "Move",
+    "Attack",
+    "Hold Position",
+    "Assault",
+    "Retreat",
+    "Stop",
+    "Deselect",
+  ])
     await reachable(button(page, name), { minimum: 44 });
+  await button(page, "Workers").tap();
+  for (const name of ["Gather", "Construct", "Move", "Stop"])
+    await reachable(button(page, name), { minimum: 44 });
+  await expect(button(page, "Assault")).toHaveCount(0);
+  await expect(button(page, "Hold Position")).toHaveCount(0);
   await button(page, "Build").tap();
   for (const name of ["Farm", "Barracks", "Watchtower", "Siege Workshop"])
     await reachable(button(page, name), { minimum: 44 });
@@ -131,6 +146,8 @@ async function checkCommands(page) {
   await fieldTap(page, 9.5, 25.5);
   for (const name of ["Set Rally Point", "Clear Rally"])
     await reachable(button(page, name), { minimum: 44 });
+  await reachable(button(page, "Worker"), { minimum: 44 });
+  await expect(button(page, "Swordsman")).toHaveCount(0);
   await button(page, "Army").tap();
   expect(
     await page.evaluate(
@@ -159,17 +176,17 @@ for (const viewport of viewports) {
   test(`${viewport.width}x${viewport.height} ${viewport.label}: entry and commands remain reachable`, async ({
     page,
   }, info) => {
-    // This comprehensive case checks every command group and captures two full
-    // high-DPI images. Two-CPU CI can complete all gameplay assertions yet exceed
-    // 30 seconds while encoding the final 5-megapixel artifact. Only the total
-    // case budget is extended; native actionability and assertion deadlines stay
-    // unchanged, with no forced actions or retries.
-    test.setTimeout(60_000);
+    // The expanded audit checks military, worker and production contexts plus
+    // stable selection controls, then encodes two high-DPI images. Its largest
+    // local case takes 43.7 seconds with two workers. Budget this whole sequence
+    // for software-rendered CI; native actionability and individual assertion
+    // deadlines stay unchanged, with no forced actions or retries.
+    test.setTimeout(90_000);
     await page.setViewportSize({
       width: viewport.width,
       height: viewport.height,
     });
-    await mkdir("docs/screenshots/task004", { recursive: true });
+    await mkdir("docs/screenshots/task005", { recursive: true });
     await page.goto("/?test=1");
     await reachable(button(page, "Play LAMMB Empires"), { minimum: 44 });
     await expect(page.locator("#entry a")).toHaveAttribute(
@@ -178,7 +195,7 @@ for (const viewport of viewports) {
     );
     await reachable(page.locator("#entry a"));
     await page.screenshot({
-      path: `docs/screenshots/task004/${info.project.name}-${viewport.label}-entry.png`,
+      path: `docs/screenshots/task005/${info.project.name}-${viewport.label}-entry.png`,
     });
     await button(page, "Play LAMMB Empires").tap();
     await checkCommands(page);
@@ -247,7 +264,7 @@ for (const viewport of viewports) {
       timeout: 7000,
     });
     await page.screenshot({
-      path: `docs/screenshots/task004/${info.project.name}-${viewport.label}-active.png`,
+      path: `docs/screenshots/task005/${info.project.name}-${viewport.label}-active.png`,
     });
   });
 }
@@ -365,7 +382,7 @@ test("portrait landscape portrait preserves a live expedition and accepts tactic
     )
     .toBe(true);
   await page.screenshot({
-    path: `docs/screenshots/task004/${info.project.name}-rotation-landscape.png`,
+    path: `docs/screenshots/task005/${info.project.name}-rotation-landscape.png`,
   });
   await button(page, "Pause").tap();
   const landscape = {
@@ -382,7 +399,7 @@ test("portrait landscape portrait preserves a live expedition and accepts tactic
     .poll(async () => (await snap(page)).time)
     .toBeGreaterThan(landscape.state.time);
   await page.screenshot({
-    path: `docs/screenshots/task004/${info.project.name}-rotation-portrait.png`,
+    path: `docs/screenshots/task005/${info.project.name}-rotation-portrait.png`,
   });
   await button(page, "Pause").tap();
   await page.locator("#restart-paused").tap();

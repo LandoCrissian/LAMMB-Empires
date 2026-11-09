@@ -114,14 +114,48 @@
       <div class="camera-tools panel">
         <button data-action="home" aria-label="Center settlement">⌂</button
         ><button data-action="zoom-in" aria-label="Zoom in">+</button
-        ><button data-action="zoom-out" aria-label="Zoom out">−</button>
+        ><button data-action="zoom-out" aria-label="Zoom out">−</button
+        ><button
+          id="pan-control"
+          data-action="mode-pan"
+          aria-label="Pan"
+          aria-pressed="false"
+          title="Pan the battlefield"
+        >
+          ✥
+        </button>
       </div>
       <div id="toast" class="toast" role="status" aria-live="polite"></div>
       <div id="hint" class="hint">
-        Select a worker, then tap a resource to gather.
+        Tap a unit, then ground to move. Hold and drag to select a group.
       </div>
       <footer class="command-dock panel">
-        <div id="selection-info" class="selection-info"></div>
+        <div class="selection-column">
+          <div id="selection-info" class="selection-info"></div>
+          <div
+            class="selection-tools"
+            role="group"
+            aria-label="Selection tools"
+          >
+            <button
+              id="select-area"
+              data-action="mode-box"
+              aria-label="Select Area"
+              aria-pressed="false"
+              title="Select Area"
+            >
+              ▱ <span>Area</span>
+            </button>
+            <button
+              id="deselect"
+              data-action="clear-selection"
+              aria-label="Deselect"
+              title="Deselect"
+            >
+              ×
+            </button>
+          </div>
+        </div>
         <div class="command-body">
           <nav class="command-tabs" aria-label="Command groups">
             <button data-tab="orders" class="active">Command</button
@@ -152,6 +186,18 @@
         approach. Farms provide finite food; build more as they run out.
       </p>
       <p>
+        Touch: tap a friendly unit, then open ground to move. Tap an enemy to
+        attack or a resource to gather. Hold until the gold cue appears, then
+        drag to select a group. Area offers the same selection without holding;
+        × deselects. A quick drag pans, and two fingers pan and zoom.
+      </p>
+      <p>
+        Assault advances a mixed army together with a brief regroup near
+        defenses. Retreat sends survivors to the ground you choose at their
+        normal speed. They remain vulnerable, and new orders take effect
+        immediately.
+      </p>
+      <p>
         Select a completed Town Center, Barracks or Siege Workshop to set a
         rally point. Tap a destination, then Confirm Rally. Town Center workers
         can rally to a deposit or completed farm and gather normally. Clear
@@ -167,14 +213,16 @@
         <dd>
           Click to select · drag a selection box · Shift adds units ·
           right-click to move, gather or attack. WASD/arrows pan, wheel zooms. V
-          selects workers, G selects army, H centers home, J holds position,
-          Space pauses.
+          selects workers, G selects army, H centers home, J holds position, K
+          prepares an assault, R prepares retreat, Escape cancels or deselects,
+          and Space pauses.
         </dd>
         <dt>Touch</dt>
         <dd>
-          Tap to select. Choose Move or Attack, then tap the field. Drag to pan;
-          use two fingers to pan and pinch. Choose a building, tap a location,
-          then Place building.
+          Tap a unit, then open ground to move or an enemy to attack. Hold for
+          the gold cue and drag to select; Area also selects without holding.
+          Drag immediately to pan; use two fingers to pan and pinch. Choose a
+          building, tap a location, then Place building.
         </dd>
       </dl>
       <p class="muted">

@@ -15,7 +15,13 @@ import {
   reachable,
   separateUnits,
 } from "./movement.mjs";
-import { formationDestinations } from "./formations.mjs";
+import { formationDestinations, sameMovementRegion } from "./formations.mjs";
+import {
+  prepareAssault,
+  beginAssault,
+  detachAssault,
+  updateAssaults,
+} from "./tactics.mjs";
 import { makeUnit, updateWorker, updateBuildings } from "./economy.mjs";
 import { updateCombatUnit, updateDefenses } from "./combat.mjs";
 import { updateAI } from "./ai.mjs";
@@ -71,6 +77,8 @@ export function createGame(seed = 5280) {
     buildings: [],
     nodes: [],
     events: [],
+    assaults: [],
+    nextAssaultId: 1,
     ai: {
       nextRaid: AI_CONFIG.firstRaid,
       wave: 0,
@@ -338,6 +346,7 @@ export function command(state, action) {
       false,
     );
     for (const u of workers) {
+      detachAssault(state, [u]);
       u.order = { type: "build", targetId: b.id };
       u.rallyAssignment = null;
       u.delivering = false;
@@ -398,6 +407,8 @@ export function command(state, action) {
         "idle",
         "hold",
         "move",
+        "retreat",
+        "assault",
         "attackMove",
         "attack",
         "gather",
@@ -405,6 +416,10 @@ export function command(state, action) {
       ].includes(order.type)
     )
       return fail("Invalid order.");
+    if (order.type === "assault") {
+      const prepared = prepareAssault(state, units, order);
+      return prepared.ok ? beginAssault(state, units, prepared.plan) : prepared;
+    }
     let target;
     if (["attack", "gather", "build"].includes(order.type)) {
       target = byId(state, order.targetId);
@@ -437,7 +452,7 @@ export function command(state, action) {
         return fail("Select Workers for this task.");
     }
     let point;
-    if (["move", "attackMove"].includes(order.type)) {
+    if (["move", "attackMove", "retreat"].includes(order.type)) {
       if (
         ![order.x, order.y].every(Number.isFinite) ||
         order.x < 0 ||
@@ -448,6 +463,11 @@ export function command(state, action) {
         return fail("Choose a destination on the battlefield.");
       point = nearestOpen(state, order.x, order.y);
       if (!point) return fail("No open destination.");
+      if (
+        order.type === "retreat" &&
+        units.some((unit) => !sameMovementRegion(state, unit, point))
+      )
+        return fail("Choose reachable regroup ground for every selected unit.");
     }
     const destinations =
       point && units.length > 1
@@ -461,6 +481,7 @@ export function command(state, action) {
       const u = units[i];
       if (["gather", "build"].includes(order.type) && u.type !== "worker")
         continue;
+      detachAssault(state, [u]);
       u.order = { ...order };
       u.rallyAssignment = null;
       u.delivering = false;
@@ -513,6 +534,7 @@ export function stepGame(state, dt = STEP) {
   state.time = Math.round((state.time + dt) * 1e9) / 1e9;
   updateRallyOrders(state);
   updateAI(state);
+  updateAssaults(state, dt);
   for (const b of state.buildings) b.builders = 0;
   for (const u of state.units) {
     if (u.hp <= 0) continue;

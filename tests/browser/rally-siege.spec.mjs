@@ -136,7 +136,7 @@ async function reachable(locator) {
 test.beforeEach(async ({ page }) => {
   page.runtimeErrors = [];
   page.on("pageerror", (error) => page.runtimeErrors.push(error.message));
-  await mkdir("docs/screenshots/task004", { recursive: true });
+  await mkdir("docs/screenshots/task005", { recursive: true });
 });
 test.afterEach(async ({ page }) => expect(page.runtimeErrors).toEqual([]));
 
@@ -195,7 +195,7 @@ test("a trained worker follows its resource rally and physically delivers finite
   expect(Math.abs(extracted - banked - cargo)).toBeLessThan(0.001);
   await selectBuilding(page, tc, isMobile);
   await page.screenshot({
-    path: `docs/screenshots/task004/${info.project.name}-worker-rally.png`,
+    path: `docs/screenshots/task005/${info.project.name}-worker-rally.png`,
   });
 });
 
@@ -363,7 +363,7 @@ test("a worker-built workshop trains a physical ram that follows its rally throu
   await selectBuilding(page, workshop, isMobile);
   await navigate(page, 13, 25, isMobile);
   await page.screenshot({
-    path: `docs/screenshots/task004/${info.project.name}-ram-rally.png`,
+    path: `docs/screenshots/task005/${info.project.name}-ram-rally.png`,
   });
   await activate(button(page, "Pause"), isMobile);
   await activate(page.locator("#restart-paused"), isMobile);

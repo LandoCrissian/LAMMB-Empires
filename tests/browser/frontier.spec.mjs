@@ -27,7 +27,7 @@ test.afterEach(async ({ page }) => {
 test("entry and playable battlefield render without layout overflow", async ({
   page,
 }, info) => {
-  await mkdir("docs/screenshots/task004", { recursive: true });
+  await mkdir("docs/screenshots/task005", { recursive: true });
   await page.goto("/?test=1");
   await expect(
     page.getByRole("button", { name: "Play LAMMB Empires" }),
@@ -38,7 +38,7 @@ test("entry and playable battlefield render without layout overflow", async ({
     "https://opensea.io/collection/lammbs-59693791",
   );
   await page.screenshot({
-    path: `docs/screenshots/task004/baseline-${info.project.name}-entry.png`,
+    path: `docs/screenshots/task005/baseline-${info.project.name}-entry.png`,
   });
   await page.getByRole("button", { name: "Play LAMMB Empires" }).click();
   await expect(page.locator('[data-resource="wood"]')).toContainText("230");
@@ -57,7 +57,7 @@ test("entry and playable battlefield render without layout overflow", async ({
     timeout: 7000,
   });
   await page.screenshot({
-    path: `docs/screenshots/task004/baseline-${info.project.name}-battlefield.png`,
+    path: `docs/screenshots/task005/baseline-${info.project.name}-battlefield.png`,
   });
 });
 
@@ -173,7 +173,7 @@ test("valid placement spends inventory and workers finish a functional farm", as
     ),
   ).toBe(true);
   await page.screenshot({
-    path: `docs/screenshots/task004/baseline-${info.project.name}-construction.png`,
+    path: `docs/screenshots/task005/baseline-${info.project.name}-construction.png`,
   });
 });
 
@@ -243,7 +243,7 @@ test("a constructed barracks unlocks timed archer recruitment", async ({
     .toBe(true);
   await page.getByRole("button", { name: "Army", exact: true }).click();
   await page.screenshot({
-    path: `docs/screenshots/task004/baseline-${info.project.name}-military.png`,
+    path: `docs/screenshots/task005/baseline-${info.project.name}-military.png`,
   });
 });
 

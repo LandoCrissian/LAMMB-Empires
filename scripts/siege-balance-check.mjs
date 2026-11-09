@@ -10,6 +10,7 @@ export function playSiegeSkirmish(
   options = {},
 ) {
   const useSiege = options.useSiege !== false,
+    commandExperience = options.commandExperience === true,
     troopLimit = useSiege ? 12 : 14;
   const opening = playSkirmish(seed, 190);
   const state = opening.state,
@@ -26,9 +27,22 @@ export function playSiegeSkirmish(
     rejectedCommands: 0,
     workshopCompletedAt: null,
   };
+  if (commandExperience)
+    Object.assign(metrics, {
+      coordinatedOrders: 0,
+      retreatCount: 0,
+      retreatDistance: 0,
+      retreatDamage: 0,
+      assaultDamageTaken: 0,
+      crossingRegroups: 0,
+      stagingObserved: false,
+    });
   let eventId = state.nextEventId - 1,
     assault = false,
-    staged = false;
+    staged = false,
+    retreatUntil = 0,
+    retreatIssued = false,
+    nextFormationCommandAt = 0;
   const player = () =>
     state.units.filter((u) => u.faction === "player" && u.hp > 0);
   const buildings = () =>
@@ -168,6 +182,7 @@ export function playSiegeSkirmish(
       if (
         (workshop?.progress === 1 || !useSiege) &&
         !staged &&
+        state.time >= retreatUntil &&
         troops.length >= 10
       ) {
         staged = true;
@@ -181,6 +196,7 @@ export function playSiegeSkirmish(
         !assault &&
         troops.length >= (useSiege ? 10 : 12) &&
         (!useSiege || rams.length >= 1) &&
+        state.time >= retreatUntil &&
         state.time > 340
       ) {
         assault = true;
@@ -191,7 +207,12 @@ export function playSiegeSkirmish(
           rams: rams.length,
         });
       }
-      if (assault && troops.length < 4) {
+      const withdrawUnderFire =
+        commandExperience &&
+        !retreatIssued &&
+        state.time >= 365 &&
+        metrics.assaultDamageTaken > 0;
+      if (assault && (troops.length < 4 || withdrawUnderFire)) {
         assault = false;
         staged = false;
         milestones.push({
@@ -201,12 +222,22 @@ export function playSiegeSkirmish(
           rams: rams.length,
         });
         const survivors = [...troops, ...rams];
-        if (survivors.length)
-          issue({
+        if (survivors.length) {
+          const result = issue({
             type: "order",
             ids: survivors.map((u) => u.id),
-            order: { type: "move", x: 15.5, y: 25.5 },
+            order: {
+              type: commandExperience ? "retreat" : "move",
+              x: 15.5,
+              y: 25.5,
+            },
           });
+          if (commandExperience && result.ok) {
+            metrics.retreatCount++;
+            retreatIssued = true;
+            retreatUntil = state.time + 32;
+          }
+        }
       }
       if (assault && tick % 100 === 0) {
         const target =
@@ -223,26 +254,71 @@ export function playSiegeSkirmish(
             (b) => b.faction === "enemy" && b.type === "townCenter",
           );
         if (target) {
-          if (troops.length)
-            issue({
-              type: "order",
-              ids: troops.map((u) => u.id),
-              order: {
-                type: "attackMove",
-                x: target.x - 1.5,
-                y: target.y + 1.5,
-              },
-            });
-          if (rams.length)
-            issue({
-              type: "order",
-              ids: rams.map((u) => u.id),
-              order: { type: "attack", targetId: target.id },
-            });
+          if (commandExperience) {
+            const military = [...troops, ...rams];
+            const active = state.assaults.find(
+              (cohort) => cohort.targetId === target.id,
+            );
+            const freshTroops = military.some(
+              (unit) => unit.order.squadId !== active?.id,
+            );
+            if (
+              !active ||
+              (freshTroops && state.time >= nextFormationCommandAt)
+            ) {
+              const result = issue({
+                type: "order",
+                ids: military.map((unit) => unit.id),
+                order: { type: "assault", targetId: target.id },
+              });
+              if (result.ok) {
+                metrics.coordinatedOrders++;
+                nextFormationCommandAt = state.time + 30;
+              }
+            }
+          } else {
+            if (troops.length)
+              issue({
+                type: "order",
+                ids: troops.map((u) => u.id),
+                order: {
+                  type: "attackMove",
+                  x: target.x - 1.5,
+                  y: target.y + 1.5,
+                },
+              });
+            if (rams.length)
+              issue({
+                type: "order",
+                ids: rams.map((u) => u.id),
+                order: { type: "attack", targetId: target.id },
+              });
+          }
         }
       }
     }
+    const retreating = commandExperience
+      ? new Map(
+          player()
+            .filter((unit) => unit.order.type === "retreat")
+            .map((unit) => [unit.id, { unit, x: unit.x, y: unit.y }]),
+        )
+      : null;
+    const assaulting = commandExperience
+      ? new Set(
+          player()
+            .filter((unit) => unit.order.type === "assault")
+            .map((unit) => unit.id),
+        )
+      : null;
     stepGame(state);
+    if (commandExperience) {
+      for (const { unit, x, y } of retreating.values())
+        metrics.retreatDistance += Math.hypot(unit.x - x, unit.y - y);
+      metrics.stagingObserved ||= state.assaults.some(
+        (cohort) => cohort.phase === "staging",
+      );
+    }
     for (const e of state.events)
       if (e.id > eventId) {
         if (e.type === "delivery") metrics.gathered[e.resource] += e.amount;
@@ -260,6 +336,14 @@ export function playSiegeSkirmish(
         }
         if (e.type === "siege" && e.faction === "player")
           metrics.ramStructureKills++;
+        if (commandExperience && e.type === "regroup")
+          metrics.crossingRegroups++;
+        if (commandExperience && e.type === "attack" && e.faction === "enemy") {
+          if (retreating.has(e.targetId))
+            metrics.retreatDamage += e.actualDamage ?? e.damage;
+          if (assaulting.has(e.targetId))
+            metrics.assaultDamageTaken += e.actualDamage ?? e.damage;
+        }
       }
     eventId = state.nextEventId - 1;
     assert.ok(
@@ -275,7 +359,11 @@ export function playSiegeSkirmish(
   }
   return {
     seed,
-    strategy: useSiege ? "siege" : "conventional-control",
+    strategy: commandExperience
+      ? "coordinated-assault-and-retreat"
+      : useSiege
+        ? "siege"
+        : "conventional-control",
     status: state.status,
     time: state.time,
     metrics,
