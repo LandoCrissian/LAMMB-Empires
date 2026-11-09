@@ -336,6 +336,15 @@ export class HUD {
         );
     } else {
       actions =
+        (touch
+          ? action(
+              "mode-box",
+              "Select Area",
+              "▱",
+              this.compact ? "Drag to select" : "Drag over friendly units",
+              { active: mode === "box" },
+            )
+          : "") +
         action(
           "mode-move",
           "Move",
@@ -385,15 +394,20 @@ export class HUD {
           {
             active: mode === "pan",
           },
-        );
+        ) +
+        (touch && units.length
+          ? action("clear-selection", "Deselect", "×", "Clear selected units")
+          : "");
     }
     if (actions !== this.lastActions) {
       el("actions").innerHTML = actions;
       this.lastActions = actions;
     }
     el("hint").textContent =
-      mode === "rally"
-        ? rallyGhost
+      mode === "box"
+        ? "Select Area armed: drag a rectangle over friendly units. Tap Select Area again to cancel."
+        : mode === "rally"
+          ? rallyGhost
           ? rallyGhost.ok
             ? "Preview ready. Confirm Rally to save this producer's instruction."
             : rallyGhost.reason || "Choose a reachable destination."
@@ -410,10 +424,10 @@ export class HUD {
                   ? "Tap trees, stone, gold or a farm to gather. Build to expand."
                   : army.length && units.length
                     ? touch
-                      ? "Choose Move or Attack, then tap the field."
+                      ? "Tap ground to move, or an enemy to attack. Hold then drag to select several."
                       : "Right-click to command, or choose Move / Attack then tap."
                     : touch
-                      ? "Select a unit. Drag the field to explore."
+                      ? "Tap a unit to select. Hold then drag to select several; drag immediately to pan."
                       : "Select a unit. Drag a selection box; WASD to explore.";
     if (performance.now() - this.lastToast > (this.toastDuration || 3600))
       el("toast").classList.remove("visible");
