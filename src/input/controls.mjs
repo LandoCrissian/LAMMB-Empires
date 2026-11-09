@@ -24,6 +24,9 @@ export function attachControls({
   const box = document.querySelector("#selection-box");
   let drag = null,
     gesture = null;
+  // A brief hold arms a touch selection rectangle. Immediate drag remains pan.
+  const touchSelectionHoldMs = 320;
+  const dragThresholdPx = 8;
   const world = (x, y) => renderer.screenToWorld(x, y, view);
   function pan(dx, dy) {
     const a = world(0, 0),
@@ -59,6 +62,8 @@ export function attachControls({
       lastX: e.clientX,
       lastY: e.clientY,
       moved: false,
+      intent: null,
+      startAt: performance.now(),
       touch: e.pointerType === "touch",
       button: e.button,
       shift: e.shiftKey,
@@ -87,17 +92,26 @@ export function attachControls({
       return;
     }
     if (!drag || drag.cancelled) return;
-    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > 8)
+    if (Math.hypot(e.clientX - drag.x, e.clientY - drag.y) > dragThresholdPx)
       drag.moved = true;
     if (drag.moved) {
-      if (
-        drag.touch ||
-        drag.button === 1 ||
-        getMode() === "pan" ||
-        keys.has(" ")
-      )
+      // Fix gesture intent once per drag. A camera pan never turns into a
+      // selection halfway through the gesture, even if the finger is held down.
+      if (!drag.intent) {
+        const mode = getMode();
+        const canSelect = !getBuild() && (mode === "select" || mode === "box");
+        drag.intent =
+          canSelect &&
+          (mode === "box" ||
+            (drag.touch
+              ? performance.now() - drag.startAt >= touchSelectionHoldMs
+              : drag.button === 0 && !keys.has(" ")))
+            ? "select"
+            : "pan";
+      }
+      if (drag.intent === "pan") {
         pan(e.clientX - drag.lastX, e.clientY - drag.lastY);
-      else if (drag.button === 0 && !getBuild()) {
+      } else {
         box.hidden = false;
         Object.assign(box.style, {
           left: `${Math.min(e.clientX, drag.x)}px`,
@@ -123,13 +137,7 @@ export function attachControls({
     const end = drag;
     drag = null;
     if (end.moved) {
-      if (
-        !end.touch &&
-        end.button === 0 &&
-        getMode() !== "pan" &&
-        !getBuild() &&
-        !keys.has(" ")
-      ) {
+      if (end.intent === "select") {
         const selected = end.shift ? new Set(getSelection()) : new Set();
         for (const u of getState().units.filter(
           (u) => u.faction === "player" && u.hp > 0,
@@ -163,6 +171,16 @@ export function attachControls({
       return;
     }
     if (getMode() === "pan") return;
+    // Touch selection is context-first: tap empty ground to command the
+    // selected units, rather than clearing them. Desktop retains right-click.
+    if (end.touch && hasUnits && !entity && getMode() === "select") {
+      onOrder(p, entity, "context");
+      return;
+    }
+    if (getMode() === "box") {
+      if (entity?.faction === "player") setSelection(new Set([entity.id]));
+      return;
+    }
     const hasWorkers = getState().units.some(
       (u) =>
         getSelection().has(u.id) &&
