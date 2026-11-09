@@ -144,7 +144,10 @@ test("a trained worker follows its resource rally and physically delivers finite
   page,
   isMobile,
 }, info) => {
-  test.setTimeout(75_000);
+  // CI WebKit can advance the fixed-step clock slower than wall time under
+  // concurrent software rendering. Budget the complete production/delivery
+  // journey while still asserting the exact simulation-time training deadline.
+  test.setTimeout(120_000);
   await start(page, isMobile);
   const original = await snapshot(page),
     tc = original.buildings.find(
@@ -159,29 +162,45 @@ test("a trained worker follows its resource rally and physically delivers finite
   expect((await snapshot(page)).resources).toEqual(original.resources);
   await activate(button(page, "Recruit"), isMobile);
   await activate(button(page, "Worker"), isMobile);
-  expect((await snapshot(page)).resources.food).toBe(
-    original.resources.food - 35,
-  );
+  const paid = await snapshot(page),
+    training = paid.buildings.find((b) => b.id === tc.id).queue[0],
+    expectedReadyAt = paid.time + training.remaining,
+    trainingWallStart = Date.now();
+  expect(paid.resources.food).toBe(original.resources.food - 35);
+  expect(training.unitType).toBe("worker");
+  expect(training.total).toBe(14);
+  expect(training.remaining).toBeGreaterThan(0);
   await expect
     .poll(
       async () =>
         (await snapshot(page)).units.filter(
           (u) => u.faction === "player" && u.type === "worker",
         ).length,
-      { timeout: 25_000 },
+      { timeout: 45_000 },
     )
     .toBe(6);
-  const born = (await snapshot(page)).units.find(
-    (u) =>
-      u.faction === "player" &&
-      u.type === "worker" &&
-      !original.units.some((v) => v.id === u.id),
-  );
+  const observedProductionWallMs = Date.now() - trainingWallStart,
+    produced = await snapshot(page),
+    born = produced.units.find(
+      (u) =>
+        u.faction === "player" &&
+        u.type === "worker" &&
+        !original.units.some((v) => v.id === u.id),
+    ),
+    trained = produced.events.find(
+      (e) =>
+        e.type === "trained" && e.unitId === born.id && e.buildingId === tc.id,
+    );
+  expect(trained, "the queued worker must complete real training").toBeTruthy();
+  expect(
+    Math.abs(trained.time - expectedReadyAt),
+    "training completes at its fixed-step simulation deadline, without instant completion or a blocked exit",
+  ).toBeLessThanOrEqual(0.1000001);
   expect(born.order.type).toBe("gather");
   expect(born.order.targetId).toBe(node.id);
   await expect
     .poll(async () => (await snapshot(page)).resources.wood, {
-      timeout: 30_000,
+      timeout: 45_000,
     })
     .toBeGreaterThan(original.resources.wood);
   const after = await snapshot(page),
@@ -193,6 +212,21 @@ test("a trained worker follows its resource rally and physically delivers finite
     banked = after.resources.wood - original.resources.wood,
     cargo = unit.carry?.type === "wood" ? unit.carry.amount : 0;
   expect(Math.abs(extracted - banked - cargo)).toBeLessThan(0.001);
+  await info.attach("worker-rally-training-clock", {
+    body: JSON.stringify({
+      paidAt: paid.time,
+      queuedRemaining: training.remaining,
+      expectedReadyAt,
+      trainedAt: trained.time,
+      observedAt: produced.time,
+      observedProductionWallMs,
+      deliveredAt: after.time,
+      workers: produced.units.filter(
+        (u) => u.faction === "player" && u.type === "worker",
+      ).length,
+    }),
+    contentType: "application/json",
+  });
   await selectBuilding(page, tc, isMobile);
   await page.screenshot({
     path: `docs/screenshots/task005/${info.project.name}-worker-rally.png`,

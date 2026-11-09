@@ -1,11 +1,14 @@
 import { defineConfig } from "@playwright/test";
+import { availableParallelism } from "node:os";
 
 export default defineConfig({
   testDir: "./tests/browser",
   timeout: 30_000,
   fullyParallel: false,
-  // Bound simultaneous animated battlefields and retained failure diagnostics.
-  workers: 2,
+  // Leave CPU capacity for high-DPI software rasterization and the fixed-step
+  // clock. Small 2–4 CPU CI hosts use one browser; this 16-CPU dev host uses two.
+  // Every case still runs, with unchanged assertions and no retries.
+  workers: Math.max(1, Math.min(2, Math.floor(availableParallelism() / 4))),
   use: {
     baseURL: "http://127.0.0.1:4173",
     // Keep DOM/source traces without continuously recording the animated canvas.
