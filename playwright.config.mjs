@@ -19,7 +19,7 @@ export default defineConfig({
   projects: [
     {
       name: "desktop-chromium",
-      testMatch: "**/frontier.spec.mjs",
+      testMatch: ["**/frontier.spec.mjs", "**/command-first.spec.mjs"],
       use: { browserName: "chromium", viewport: { width: 1440, height: 900 } },
     },
     {
@@ -62,7 +62,7 @@ export default defineConfig({
     },
     {
       name: "rally-siege-mobile-chromium",
-      testMatch: "**/rally-siege.spec.mjs",
+      testMatch: ["**/rally-siege.spec.mjs", "**/command-first.spec.mjs"],
       use: {
         browserName: "chromium",
         viewport: { width: 844, height: 390 },
@@ -73,7 +73,7 @@ export default defineConfig({
     },
     {
       name: "rally-siege-mobile-webkit",
-      testMatch: "**/rally-siege.spec.mjs",
+      testMatch: ["**/rally-siege.spec.mjs", "**/command-first.spec.mjs"],
       use: {
         browserName: "webkit",
         viewport: { width: 844, height: 390 },
