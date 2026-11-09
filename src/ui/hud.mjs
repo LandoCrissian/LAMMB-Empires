@@ -124,7 +124,9 @@ export class HUD {
     this.urgentToastUntil = urgent ? now + this.toastDuration : 0;
   }
   render(state, selection, mode, buildType, ghost, rallyGhost = null) {
-    const touch = navigator.maxTouchPoints > 0;
+    const touch =
+      navigator.maxTouchPoints > 0 ||
+      matchMedia("(any-pointer: coarse)").matches;
     const selected = [
       ...state.units,
       ...state.buildings,
@@ -336,15 +338,13 @@ export class HUD {
         );
     } else {
       actions =
-        (touch
-          ? action(
-              "mode-box",
-              "Select Area",
-              "▱",
-              this.compact ? "Drag to select" : "Drag over friendly units",
-              { active: mode === "box" },
-            )
-          : "") +
+        action(
+          "mode-box",
+          "Select Area",
+          "▱",
+          this.compact ? "Drag to select" : "Drag over friendly units",
+          { active: mode === "box" },
+        ) +
         action(
           "mode-move",
           "Move",
@@ -395,7 +395,7 @@ export class HUD {
             active: mode === "pan",
           },
         ) +
-        (touch && units.length
+        (units.length
           ? action("clear-selection", "Deselect", "×", "Clear selected units")
           : "");
     }

@@ -403,22 +403,35 @@ test("Hold and Stop cancel armed pointer modes, and J holds the selected army", 
   expect(await page.evaluate(() => window.frontierDebug.mode())).toBe("move");
   await button(page, "Hold Position").tap();
   expect(await page.evaluate(() => window.frontierDebug.mode())).toBe("select");
-  await fieldTap(page, 11.5, 23.5);
   expect(
     (await snap(page)).units
       .filter((u) => ids.includes(u.id))
       .every((u) => u.order.type === "hold"),
+  ).toBe(true);
+  // Hold clears the armed Move mode. A subsequent deliberate touch is a new
+  // contextual movement order under the command-first interaction contract.
+  await fieldTap(page, 11.5, 23.5);
+  expect(
+    (await snap(page)).units
+      .filter((u) => ids.includes(u.id))
+      .every((u) => u.order.type === "move"),
   ).toBe(true);
   await button(page, "Army").tap();
   await button(page, "Attack").tap();
   expect(await page.evaluate(() => window.frontierDebug.mode())).toBe("attack");
   await button(page, "Stop").tap();
   expect(await page.evaluate(() => window.frontierDebug.mode())).toBe("select");
-  await fieldTap(page, 11.5, 23.5);
   expect(
     (await snap(page)).units
       .filter((u) => ids.includes(u.id))
       .every((u) => u.order.type === "idle"),
+  ).toBe(true);
+  // Stop cancels armed Attack. The fresh touch must move, never attack-move.
+  await fieldTap(page, 9.5, 20.5);
+  expect(
+    (await snap(page)).units
+      .filter((u) => ids.includes(u.id))
+      .every((u) => u.order.type === "move"),
   ).toBe(true);
   await button(page, "Army").tap();
   await page.keyboard.press("j");

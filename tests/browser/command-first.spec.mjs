@@ -19,8 +19,8 @@ async function swordsmanRectangle(page) {
     if (positions.length < 2) throw new Error("Expected two initial swordsmen");
     return {
       ids: positions.map((p) => p.id).sort(),
-      start: { x: Math.min(...positions.map((p) => p.x) - 18), y: Math.min(...positions.map((p) => p.y) - 18) },
-      end: { x: Math.max(...positions.map((p) => p.x) + 18), y: Math.max(...positions.map((p) => p.y) + 18) },
+      start: { x: Math.min(...positions.map((p) => p.x)) - 18, y: Math.min(...positions.map((p) => p.y)) - 18 },
+      end: { x: Math.max(...positions.map((p) => p.x)) + 18, y: Math.max(...positions.map((p) => p.y)) + 18 },
     };
   });
 }
