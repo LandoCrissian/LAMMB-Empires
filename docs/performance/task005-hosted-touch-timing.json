@@ -1,0 +1,245 @@
+{
+  "date": "2026-11-09",
+  "host": "Windows 10.0.26200 / Intel Core i7-11800H / 16 logical CPUs",
+  "node": "22.23.2",
+  "playwright": "1.65.0",
+  "chromium": "158.0.8127.18",
+  "webkit": "27.2",
+  "sourceCommit": "e4b7e26d41bcac776f2a7ce85c8ae78b036a6853",
+  "isolatedPreview": "https://6af2531efc23138b2814a5a8--lammb-empires-frontier-preview.netlify.app",
+  "viewport": {
+    "width": 844,
+    "height": 390,
+    "deviceScaleFactor": 2,
+    "isMobile": true,
+    "hasTouch": true
+  },
+  "oldGesture": {
+    "path": "six constant-velocity CDP touchMove points, then lift",
+    "result": "first real Minimap tap had pointerdown/up but no click; aria-expanded remained false for full 5000 ms",
+    "sameCdpSessionForDragAndHudTap": true,
+    "measurements": {
+      "selectionDownMs": 4516.600000008941,
+      "firstMoveMs": 4954.800000011921,
+      "lastMoveMs": 5137.5,
+      "releaseMs": 5182.800000011921,
+      "deliveredMoves": 6,
+      "firstToLastMoveMs": 182.69999998807907,
+      "lastMoveToReleaseMs": 45.30000001192093,
+      "firstHudDownMs": 5366.300000011921,
+      "releaseToHudDownMs": 183.5,
+      "hudTouchDurationMs": 33.5,
+      "hudClickMs": null,
+      "hudDownToClickMs": null,
+      "hudTarget": "toggle-minimap",
+      "hudPrimary": true,
+      "hudDefaultPrevented": false,
+      "hudConnected": true,
+      "hudHitTarget": "toggle-minimap"
+    },
+    "diagnosticVariantsAlsoFailed": [
+      "Keep CDP session attached, then Playwright native tap.",
+      "Same CDP session for both held selection and following native touchStart/touchEnd.",
+      "Input.synthesizeTapGesture with a 60-ms touch source.",
+      "Runtime button touch-action: manipulation.",
+      "Runtime no-op only Canvas touch-pointerdown preventDefault; document safety guard preserved."
+    ],
+    "observedControlEvidence": [
+      "Correct Minimap hit target at pointerdown and pointerup; node remained connected.",
+      "Fresh primary=true HUD pointerdown cleared the product cross-surface suppression flag.",
+      "Pre-main click listener observed no synthesized click; no application click handler could receive one."
+    ]
+  },
+  "revisedGesture": {
+    "scope": "only the full combat journey; existing fast-pan, pinch and cancellation cases unchanged",
+    "path": "12 cubic ease-out native touchMove points, visible rectangle, stationary endpoint held for a requested 120 ms using animation frames, then native touchEnd",
+    "retryOrForcedClick": false,
+    "sourceProductChanges": false,
+    "minimapAssertions": [
+      "aria-expanded=true",
+      "visible map",
+      "non-null bounding box before coordinates",
+      "aria-expanded=false and hidden map after explicit close"
+    ],
+    "earlierDiagnosticPasses": {
+      "chromiumFullJourneys": 4,
+      "note": "One initial plus three fresh repeats before restoring normal CDP detach; final exact-source repetitions below restore detach."
+    },
+    "exactSourceFreshChromiumRuns": [
+      {
+        "run": 1,
+        "result": "passed",
+        "journeyWallSeconds": 15.4,
+        "selectionDownMs": 5050.29999999702,
+        "firstMoveMs": 5504.399999991059,
+        "lastMoveMs": 5887.699999988079,
+        "releaseMs": 6083.5999999940395,
+        "deliveredMoves": 12,
+        "firstToLastMoveMs": 383.29999999701977,
+        "lastMoveToReleaseMs": 195.90000000596046,
+        "firstHudDownMs": 6282.5,
+        "releaseToHudDownMs": 198.90000000596046,
+        "hudTouchDurationMs": 0.19999998807907104,
+        "hudClickMs": 6286.0999999940395,
+        "hudDownToClickMs": 3.5999999940395355,
+        "hudTarget": "toggle-minimap",
+        "hudPrimary": true,
+        "hudDefaultPrevented": false,
+        "hudConnected": true,
+        "hudHitTarget": "toggle-minimap",
+        "finalMovementPx": 0.11641536091346084,
+        "finalMovementMs": 34.3999999910593
+      },
+      {
+        "run": 2,
+        "result": "passed",
+        "journeyWallSeconds": 15.2,
+        "selectionDownMs": 4946.5999999940395,
+        "firstMoveMs": 5368.5999999940395,
+        "lastMoveMs": 5752.399999991059,
+        "releaseMs": 5980.5999999940395,
+        "deliveredMoves": 12,
+        "firstToLastMoveMs": 383.79999999701977,
+        "lastMoveToReleaseMs": 228.20000000298023,
+        "firstHudDownMs": 6163.79999999702,
+        "releaseToHudDownMs": 183.20000000298023,
+        "hudTouchDurationMs": 0.29999999701976776,
+        "hudClickMs": 6164.899999991059,
+        "hudDownToClickMs": 1.0999999940395355,
+        "hudTarget": "toggle-minimap",
+        "hudPrimary": true,
+        "hudDefaultPrevented": false,
+        "hudConnected": true,
+        "hudHitTarget": "toggle-minimap",
+        "finalMovementPx": 0.11641536091346084,
+        "finalMovementMs": 34.79999999701977
+      },
+      {
+        "run": 3,
+        "result": "passed",
+        "journeyWallSeconds": 14.9,
+        "selectionDownMs": 4544.5,
+        "firstMoveMs": 4981.4000000059605,
+        "lastMoveMs": 5365.20000000298,
+        "releaseMs": 5577.20000000298,
+        "deliveredMoves": 12,
+        "firstToLastMoveMs": 383.79999999701977,
+        "lastMoveToReleaseMs": 212.0,
+        "firstHudDownMs": 5777.20000000298,
+        "releaseToHudDownMs": 200.0,
+        "hudTouchDurationMs": 0.5999999940395355,
+        "hudClickMs": 5778.5,
+        "hudDownToClickMs": 1.2999999970197678,
+        "hudTarget": "toggle-minimap",
+        "hudPrimary": true,
+        "hudDefaultPrevented": false,
+        "hudConnected": true,
+        "hudHitTarget": "toggle-minimap",
+        "finalMovementPx": 0.11641536091346084,
+        "finalMovementMs": 33.400000005960464
+      }
+    ],
+    "exactSourceWebkit": {
+      "result": "passed",
+      "journeyWallSeconds": 13.1,
+      "totalWallSeconds": 13.9,
+      "selection": "explicit Area with real mouse rectangle; following commands use native tap",
+      "nativeTouchDragSupported": false
+    },
+    "finalHostedChromiumJourney": {
+      "initial": 2,
+      "aliveAtFirstInjury": 2,
+      "retreating": 2,
+      "surviving": 2,
+      "nativeHeldSelection": true,
+      "retreatHP": [
+        {
+          "id": "u67",
+          "hp": 97
+        },
+        {
+          "id": "u68",
+          "hp": 125
+        }
+      ],
+      "survivorHP": [
+        {
+          "id": "u67",
+          "hp": 69
+        },
+        {
+          "id": "u68",
+          "hp": 125
+        }
+      ],
+      "retreatDistanceProgress": [
+        {
+          "id": "u67",
+          "tiles": 1.276961192971747
+        },
+        {
+          "id": "u68",
+          "tiles": 1.3226759850150982
+        }
+      ]
+    },
+    "finalHostedWebkitJourney": {
+      "initial": 2,
+      "aliveAtFirstInjury": 2,
+      "retreating": 2,
+      "surviving": 2,
+      "nativeHeldSelection": false,
+      "retreatHP": [
+        {
+          "id": "u67",
+          "hp": 97
+        },
+        {
+          "id": "u68",
+          "hp": 125
+        }
+      ],
+      "survivorHP": [
+        {
+          "id": "u67",
+          "hp": 97
+        },
+        {
+          "id": "u68",
+          "hp": 125
+        }
+      ],
+      "retreatDistanceProgress": [
+        {
+          "id": "u67",
+          "tiles": 1.2225755452345286
+        },
+        {
+          "id": "u68",
+          "tiles": 1.2142431937964826
+        }
+      ]
+    }
+  },
+  "interpretation": "The revised native finger path consistently restores first-tap click synthesis on this Windows host. Results are consistent with gesture-recognizer/protocol behavior after abrupt injected motion, but do not establish a Chromium engine root cause or a physical-device defect. No product workaround, fake click, retry or post-failure sleep was added.",
+  "localNavigation": {
+    "status": "passed",
+    "cases": 6,
+    "workers": 1,
+    "totalWallSeconds": 78,
+    "scope": "Exact command-first, landscape and rally-siege minimap helpers copied to ignored output paths; Chromium and WebKit real touch input.",
+    "casesByEngine": {
+      "chromium": {
+        "directSoldierAndArmyMovementSeconds": 3.6,
+        "portraitLandscapePortraitExpeditionSeconds": 26.2,
+        "setReplaceClearRallySeconds": 9.8
+      },
+      "webkit": {
+        "directSoldierAndArmyMovementSeconds": 3.0,
+        "portraitLandscapePortraitExpeditionSeconds": 25.1,
+        "setReplaceClearRallySeconds": 8.2
+      }
+    },
+    "sourceScreenshotsOverwritten": false
+  }
+}

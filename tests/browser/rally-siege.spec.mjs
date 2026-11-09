@@ -20,12 +20,26 @@ async function closePanels(page, touch) {
     await activate(button(page, "Objectives"), touch);
   if (await page.locator("#minimap").isVisible())
     await activate(button(page, "Minimap"), touch);
+  await expect(button(page, "Minimap")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(page.locator("#minimap")).toBeHidden();
 }
 async function navigate(page, x, y, touch) {
   if (!(await page.locator("#minimap").isVisible()))
     await activate(button(page, "Minimap"), touch);
+  await expect(button(page, "Minimap")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(page.locator("#minimap")).toBeVisible();
   const state = await snapshot(page),
     bounds = await page.locator("#minimap").boundingBox();
+  expect(
+    bounds,
+    "visible minimap exposes a measurable interaction surface",
+  ).not.toBeNull();
   const position = {
     x: (bounds.width * x) / state.map.width,
     y: (bounds.height * y) / state.map.height,

@@ -35,11 +35,19 @@ async function field(page, x, y, touch, contextual = false) {
     await page.mouse.click(p.x, p.y, { button: contextual ? "right" : "left" });
 }
 async function navigate(page, x, y, touch) {
-  if (!(await page.locator("#minimap").isVisible()))
-    await activate(button(page, "Minimap"), touch);
-  const state = await snapshot(page);
   const map = page.locator("#minimap");
+  if (!(await map.isVisible())) await activate(button(page, "Minimap"), touch);
+  await expect(button(page, "Minimap")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(map).toBeVisible();
+  const state = await snapshot(page);
   const bounds = await map.boundingBox();
+  expect(
+    bounds,
+    "visible minimap exposes a measurable interaction surface",
+  ).not.toBeNull();
   const position = {
     x: (bounds.width * x) / state.map.width,
     y: (bounds.height * y) / state.map.height,
@@ -47,6 +55,11 @@ async function navigate(page, x, y, touch) {
   if (touch) await map.tap({ position });
   else await map.click({ position });
   if (await map.isVisible()) await activate(button(page, "Minimap"), touch);
+  await expect(button(page, "Minimap")).toHaveAttribute(
+    "aria-expanded",
+    "false",
+  );
+  await expect(map).toBeHidden();
 }
 async function selectUnit(page, unit, touch) {
   const p = await point(page, unit.x, unit.y);
@@ -776,8 +789,31 @@ test("battlefield journey selects, moves, attacks and retreats real combat survi
     try {
       await dispatchTouch(cdp, "touchStart", [{ ...box.start, id: 1 }]);
       await expect(page.locator("#selection-box.armed")).toBeVisible();
-      await dragTouch(cdp, box.start, box.end);
+      // Model a finger decelerating into its selection endpoint before lifting.
+      // Abrupt constant-velocity CDP streams can suppress Chromium's next HUD
+      // tap synthesis on this host. Fast-pan/cancellation probes stay unchanged.
+      for (let step = 1; step <= 12; step++) {
+        const progress = 1 - Math.pow(1 - step / 12, 3);
+        await dispatchTouch(cdp, "touchMove", [
+          {
+            x: box.start.x + (box.end.x - box.start.x) * progress,
+            y: box.start.y + (box.end.y - box.start.y) * progress,
+            id: 1,
+          },
+        ]);
+      }
       await expect(page.locator("#selection-box")).toBeVisible();
+      await page.evaluate(
+        () =>
+          new Promise((resolve) => {
+            const started = performance.now();
+            const frame = () =>
+              performance.now() - started >= 120
+                ? resolve()
+                : requestAnimationFrame(frame);
+            requestAnimationFrame(frame);
+          }),
+      );
       await dispatchTouch(cdp, "touchEnd");
     } finally {
       await cdp.detach();

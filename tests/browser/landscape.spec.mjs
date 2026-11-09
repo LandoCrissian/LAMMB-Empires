@@ -35,9 +35,18 @@ async function fieldTap(page, x, y) {
 async function navigateMap(page, x, y) {
   if (!(await page.locator("#minimap").isVisible()))
     await button(page, "Minimap").tap();
+  const map = page.locator("#minimap");
+  await expect(button(page, "Minimap")).toHaveAttribute(
+    "aria-expanded",
+    "true",
+  );
+  await expect(map).toBeVisible();
   const state = await snap(page),
-    map = page.locator("#minimap"),
     bounds = await map.boundingBox();
+  expect(
+    bounds,
+    "visible minimap exposes a measurable interaction surface",
+  ).not.toBeNull();
   await map.tap({
     position: {
       x: (bounds.width * x) / state.map.width,
@@ -51,6 +60,11 @@ async function navigateMap(page, x, y) {
       .evaluate((el) => el.classList.contains("compact-landscape"))
   ) {
     if (await map.isVisible()) await button(page, "Minimap").tap();
+    await expect(button(page, "Minimap")).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+    await expect(map).toBeHidden();
   }
 }
 
