@@ -308,6 +308,7 @@ function handleAction(action) {
   if (action === "zoom-in") view.zoom = Math.min(2.3, view.zoom * 1.2);
   if (action === "zoom-out") view.zoom = Math.max(0.45, view.zoom / 1.2);
   if (action === "cancel") cancel();
+  if (action === "clear-selection") setSelection(new Set());
   if (action === "confirm-build") confirmBuild();
   if (action === "confirm-rally") confirmRally();
   if (action === "set-rally") {
