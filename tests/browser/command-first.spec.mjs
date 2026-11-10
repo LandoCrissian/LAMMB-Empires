@@ -1040,11 +1040,41 @@ test("a second UI surface cancels pending battlefield input without orders", asy
   expect((await snapshot(page)).resources).toEqual(frozen.state.resources);
   expect(await camera(page)).not.toEqual(frozen.camera);
   const continued = await camera(page);
-  await page.waitForTimeout(180);
-  expect(await camera(page)).not.toEqual(continued);
-  await page.keyboard.up("d");
+  const movementWaitStarted = Date.now();
+  try {
+    // A rendering stall may outlast a fixed wall sleep. Keep D held and wait
+    // for actual further movement; a cleared key still fails this bounded poll.
+    await expect
+      .poll(
+        async () => {
+          const next = await camera(page);
+          return Math.hypot(next.x - continued.x, next.y - continued.y);
+        },
+        {
+          timeout: 5000,
+          message: "held D keeps moving after UI gesture cancellation",
+        },
+      )
+      .toBeGreaterThan(0.05);
+    const moved = await camera(page);
+    expect(moved.x).toBeGreaterThan(continued.x);
+    expect(moved.y).toBeLessThan(continued.y);
+    expect(moved.zoom).toBe(continued.zoom);
+    info.annotations.push({
+      type: "held-camera-movement",
+      description: JSON.stringify({
+        movementWaitWallMs: Date.now() - movementWaitStarted,
+        dx: moved.x - continued.x,
+        dy: moved.y - continued.y,
+        zoom: moved.zoom,
+      }),
+    });
+  } finally {
+    await page.keyboard.up("d");
+  }
   expect(await selected(page)).toEqual(frozen.selected);
   expect(ownOrders(await snapshot(page))).toEqual(ownOrders(frozen.state));
+  expect((await snapshot(page)).resources).toEqual(frozen.state.resources);
   if (browserName === "chromium" && isMobile) {
     await navigate(page, 14.5, 20.5, true);
     await activate(button(page, "Recruit"), true);
