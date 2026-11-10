@@ -1,0 +1,98 @@
+{
+  "date": "2026-11-09",
+  "baselineCommit": "001fe97a5604de1144bf2c0b852d9f8f21fa1d24",
+  "failedGitHubRun": 42721205485,
+  "failedGitHubJob": 129515319265,
+  "test": "landscape-chromium: landscape touch pan and pinch cannot become army, placement or rally orders",
+  "ciResult": {
+    "simulationPassed": 98,
+    "browserPassed": 85,
+    "browserSkipped": 3,
+    "browserFailed": 1,
+    "legalAndBuildChecks": "passed"
+  },
+  "originalTestBudgetMs": 30000,
+  "trace": {
+    "testStartMs": 363283.298,
+    "cancelTapStartMs": 364509.575,
+    "cancelTapCompletedMs": 364604.246,
+    "afterCancelSnapshotMs": 364605.428,
+    "afterCancelControls": ["Place building", "Cancel"],
+    "afterCancelHint": "Farm - Blocked terrain, resources, or another building.",
+    "townCenterGroundTapCompletedMs": 364822.524,
+    "afterGroundTap": "Farm preview and original two-swordsman selection remained.",
+    "commandTabCompletedMs": 364906.422,
+    "afterCommandTab": "Construction preview finally cleared; military actions shown for original two swordsmen.",
+    "setRallyWaitStartMs": 364906.846,
+    "elapsedToMissingControlWaitMs": 1623.5480000000098,
+    "interpretation": "The test had completed only 1.624 seconds of work before waiting for a Set Rally control that could never appear with the unchanged army selection. The preceding Cancel tap had not dismissed construction. This was not exhaustion of the 30-second work budget. DOM snapshots do not independently prove the browser event-synthesis root cause."
+  },
+  "patch": {
+    "productSourceChanges": false,
+    "testBudgetMs": 30000,
+    "retries": 0,
+    "forcedActions": false,
+    "changedGesture": "Only the build-mode pan immediately followed by a HUD Cancel now decelerates through 12 native points with a requested 120-ms stationary endpoint before lifting.",
+    "unchangedGestureStreams": [
+      "Initial abrupt army pan and pinch in the same case.",
+      "Final rally pan and pinch in the same case.",
+      "Independent native fast-pan, pinch, held selection and cancellation regressions."
+    ],
+    "addedChecks": [
+      "Real Cancel hides Place building and Cancel controls and clears Farm hint.",
+      "Building count and supplies remain unchanged.",
+      "A visible producer roof tap selects the exact Town Center ID before setting rally.",
+      "Set Rally actually enters rally mode.",
+      "Final real Cancel clears rally preview, returns select mode and hides Cancel.",
+      "Final building count and supplies remain unchanged."
+    ]
+  },
+  "focusedHost": "Windows 10.0.26200 / Intel Core i7-11800H / Playwright 1.65.0 / Chromium 158.0.8127.18",
+  "focusedRuns": [
+    {
+      "result": "passed",
+      "wallSeconds": 4.0,
+      "cpuThrottleRate": 1,
+      "nativeMovePoints": 12,
+      "firstToLastMoveMs": 400.69999998807907,
+      "finalPointToLiftMs": 178.6000000089407,
+      "liftToCancelDownMs": 183.8999999910593,
+      "cancelDownToActualClickMs": 1.2000000029802322,
+      "firstCancelClickIsReal": true
+    },
+    {
+      "result": "passed",
+      "wallSeconds": 4.1,
+      "cpuThrottleRate": 1,
+      "nativeMovePoints": 12,
+      "firstToLastMoveMs": 400.29999999701977,
+      "finalPointToLiftMs": 179.59999999403954,
+      "liftToCancelDownMs": 233.6000000089407,
+      "cancelDownToActualClickMs": 0.8999999910593033,
+      "firstCancelClickIsReal": true
+    },
+    {
+      "result": "passed",
+      "wallSeconds": 4.1,
+      "cpuThrottleRate": 1,
+      "nativeMovePoints": 12,
+      "firstToLastMoveMs": 400.80000001192093,
+      "finalPointToLiftMs": 196.5,
+      "liftToCancelDownMs": 216.19999998807907,
+      "cancelDownToActualClickMs": 0.9000000059604645,
+      "firstCancelClickIsReal": true
+    }
+  ],
+  "cpuSlowdownRun": {
+    "result": "passed",
+    "wallSeconds": 20.1,
+    "cpuThrottleRate": 4,
+    "nativeMovePoints": 12,
+    "firstToLastMoveMs": 1515.5,
+    "finalPointToLiftMs": 480.3999999910593,
+    "liftToCancelDownMs": 1559.4000000059605,
+    "cancelDownToActualClickMs": 4.399999991059303,
+    "firstCancelClickIsReal": true
+  },
+  "physicalDeviceFpsClaim": false
+}

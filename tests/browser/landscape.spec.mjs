@@ -614,10 +614,27 @@ test("landscape touch pan and pinch cannot become army, placement or rally order
     type: "touchStart",
     touchPoints: [{ x: 390, y: 165, id: 1 }],
   });
-  await buildGesture.send("Input.dispatchTouchEvent", {
-    type: "touchMove",
-    touchPoints: [{ x: 445, y: 185, id: 1 }],
-  });
+  // This pan is immediately followed by a HUD action. Model finger
+  // deceleration before lift, rather than an abrupt injected flick; the army
+  // pan/pinch above and the independent fast-pan regressions stay unchanged.
+  for (let step = 1; step <= 12; step++) {
+    const progress = 1 - Math.pow(1 - step / 12, 3);
+    await buildGesture.send("Input.dispatchTouchEvent", {
+      type: "touchMove",
+      touchPoints: [{ x: 390 + 55 * progress, y: 165 + 20 * progress, id: 1 }],
+    });
+  }
+  await page.evaluate(
+    () =>
+      new Promise((resolve) => {
+        const started = performance.now();
+        const frame = () =>
+          performance.now() - started >= 120
+            ? resolve()
+            : requestAnimationFrame(frame);
+        requestAnimationFrame(frame);
+      }),
+  );
   await buildGesture.send("Input.dispatchTouchEvent", {
     type: "touchEnd",
     touchPoints: [],
@@ -625,15 +642,34 @@ test("landscape touch pan and pinch cannot become army, placement or rally order
   await buildGesture.detach();
   expect((await snap(page)).buildings).toHaveLength(count);
   expect((await snap(page)).resources).toEqual(resources);
+  await expect(button(page, "Place building")).toBeVisible();
   await button(page, "Cancel").tap();
+  await expect(button(page, "Place building")).toBeHidden();
+  await expect(button(page, "Cancel")).toBeHidden();
+  await expect(page.locator("#hint")).not.toContainText("Farm");
   expect((await snap(page)).buildings).toHaveLength(count);
+  expect((await snap(page)).resources).toEqual(resources);
   await button(page, "Center settlement").tap();
-  await fieldTap(page, 9.5, 25.5);
-  await button(page, "Command").tap();
-  await button(page, "Set Rally Point").tap();
   const producer = (await snap(page)).buildings.find(
     (b) => b.type === "townCenter" && b.faction === "player",
   );
+  const roof = await project(
+    page,
+    producer.x + producer.width / 2,
+    producer.y + producer.height / 2,
+  );
+  roof.y -= 45 * (await camera(page)).zoom;
+  expect(
+    await page.evaluate(
+      ({ x, y }) => document.elementFromPoint(x, y)?.id,
+      roof,
+    ),
+  ).toBe("battlefield");
+  await page.touchscreen.tap(roof.x, roof.y);
+  expect(await selection(page)).toEqual([producer.id]);
+  await button(page, "Command").tap();
+  await button(page, "Set Rally Point").tap();
+  expect(await page.evaluate(() => window.frontierDebug.mode())).toBe("rally");
   const oldRally = producer.rally ?? null;
   const rallyGesture = await context.newCDPSession(page);
   await rallyGesture.send("Input.dispatchTouchEvent", {
@@ -672,4 +708,11 @@ test("landscape touch pan and pinch cannot become army, placement or rally order
       null,
   ).toEqual(oldRally);
   await button(page, "Cancel").tap();
+  expect(
+    await page.evaluate(() => window.frontierDebug.rallyPreview()),
+  ).toBeNull();
+  expect(await page.evaluate(() => window.frontierDebug.mode())).toBe("select");
+  await expect(button(page, "Cancel")).toBeHidden();
+  expect((await snap(page)).buildings).toHaveLength(count);
+  expect((await snap(page)).resources).toEqual(resources);
 });
