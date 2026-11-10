@@ -1,0 +1,79 @@
+{
+  "commit": "147ab28253e7f39b41c684ffa75dbf284f0d3e73",
+  "workflowRun": "https://github.com/LandoCrissian/LAMMB-Empires/actions/runs/42714015453",
+  "workflowRunNumber": 12,
+  "project": "rally-siege-mobile-webkit",
+  "test": "a trained worker follows its resource rally and physically delivers finite supplies",
+  "provenance": "Decoded serialized frontierDebug snapshots from 1-trace.trace in the retained browser-verification GitHub Actions artifact. These are observations, not injected game state.",
+  "firstPaidSnapshot": {
+    "callId": "twii@134",
+    "traceTimeMs": 754787.258,
+    "simulationTime": 6.85,
+    "food": 205,
+    "workers": 5,
+    "queueRemaining": 14,
+    "queueTotal": 14,
+    "spawnBlocked": false,
+    "status": "playing"
+  },
+  "lastPollSnapshot": {
+    "callId": "twii@210",
+    "traceTimeMs": 779665.988,
+    "simulationTime": 20.45,
+    "food": 205,
+    "workers": 5,
+    "queueRemaining": 0.39999999999993546,
+    "queueTotal": 14,
+    "spawnBlocked": false,
+    "status": "playing"
+  },
+  "wallSecondsBetweenSnapshots": 24.87873,
+  "simulationSecondsBetweenSnapshots": 13.6,
+  "expectedTrainingReadyAt": 20.85,
+  "simulationSecondsRemainingAtWallDeadline": 0.4,
+  "diagnosis": "Production was progressing and its exit was not blocked. The 25-second wall deadline expired 0.40 simulation seconds before the paid 14-second training queue was due. No gameplay-clock or production change was required.",
+  "harnessCorrection": "Keep all six-worker, gather, movement and conservation assertions; allow 45-second bounded wall waits for production and delivery inside a 120-second journey, and additionally assert the trained event occurs within 0.1 simulation seconds of paid.time + queue.remaining. Limit browser workers to one per four available CPUs, capped at two.",
+  "focusedVerification": {
+    "normalProjects": {
+      "passed": 3,
+      "projects": [
+        "rally-siege-desktop-chromium",
+        "rally-siege-mobile-chromium",
+        "rally-siege-mobile-webkit"
+      ],
+      "caseWallSeconds": [38.3, 39.3, 37.3]
+    },
+    "slowDiagnostic": {
+      "cpuRate": 4,
+      "workers": 2,
+      "viewport": "844x390, DPR2",
+      "repetitions": [
+        {
+          "status": "passed",
+          "caseWallMs": 58169,
+          "paidAt": 16.1,
+          "queuedRemaining": 13.749999999999996,
+          "expectedReadyAt": 29.849999999999998,
+          "trainedAt": 29.85,
+          "observedAt": 30.85,
+          "observedProductionWallMs": 14557,
+          "deliveredAt": 48.1,
+          "workers": 6
+        },
+        {
+          "status": "passed",
+          "caseWallMs": 59287,
+          "paidAt": 16.1,
+          "queuedRemaining": 13.749999999999996,
+          "expectedReadyAt": 29.849999999999998,
+          "trainedAt": 29.85,
+          "observedAt": 30.9,
+          "observedProductionWallMs": 14619,
+          "deliveredAt": 49.25,
+          "workers": 6
+        }
+      ],
+      "note": "Actual Chromium UI with only CPU throttling and output paths changed in an ignored copy of the same test. All count, paid queue, fixed-step training deadline, rally, travel, delivery and resource conservation assertions retained. Not physical-device performance."
+    }
+  }
+}

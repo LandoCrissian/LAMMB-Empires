@@ -1,0 +1,1391 @@
+{
+  "measuredAt": "2026-11-09T22:29:14.663Z",
+  "environment": {
+    "platform": "win32",
+    "release": "10.0.26200",
+    "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+    "logicalCpus": 16,
+    "node": "v22.23.2",
+    "chromium": "158.0.8127.18"
+  },
+  "caveat": "Headless Chromium on this host with desktop/mobile viewport emulation. CPU-throttled results are diagnostics, not physical-device performance or an iPhoneFPS claim. Canvas draw durations measure browser CPU submission cost, not GPU completion.",
+  "simulation": {
+    "fixtureSimulationTime": 240,
+    "fixtureUnits": 29,
+    "maximumUnits": 29,
+    "fixedStepSeconds": 0.05,
+    "steps": {
+      "count": 4000,
+      "meanMs": 0.3165153999999962,
+      "p50Ms": 0.19129999999995562,
+      "p95Ms": 0.7426000000000386,
+      "maxMs": 15.150900000000092
+    },
+    "groupOrders": {
+      "count": 40,
+      "meanMs": 0.4757775000000379,
+      "p50Ms": 0.2154000000000451,
+      "p95Ms": 2.4646999999999935,
+      "maxMs": 3.0072000000000116
+    },
+    "groupOrderResults": {
+      "accepted": 20,
+      "rejected": 20
+    },
+    "movement": {
+      "enabled": true,
+      "pathCalls": 3610,
+      "expandedNodes": 47060,
+      "totalPathMs": 480.4718999999923,
+      "maxPathMs": 2.418699999999717,
+      "separationCalls": 4000,
+      "totalSeparationMs": 251.81000000001086,
+      "maxSeparationMs": 1.0493000000001302
+    }
+  },
+  "browser": [
+    {
+      "name": "desktop",
+      "width": 1440,
+      "height": 900,
+      "scale": 1,
+      "cpuRate": 1,
+      "live": {
+        "metrics": {
+          "stepMs": {
+            "count": 205,
+            "p50": 0.09999999403953552,
+            "p95": 0.20000000298023224,
+            "max": 8.400000005960464,
+            "over50ms": 0
+          },
+          "renderMs": {
+            "count": 601,
+            "p50": 1.2000000029802322,
+            "p95": 1.5,
+            "max": 4,
+            "over50ms": 0
+          },
+          "frameIntervalMs": {
+            "count": 601,
+            "p50": 16.699999999999818,
+            "p95": 16.799999999999955,
+            "max": 50,
+            "over50ms": 0
+          },
+          "viewport": {
+            "width": 1440,
+            "height": 900,
+            "dpr": 1
+          }
+        },
+        "time": 10.25,
+        "unitCount": 14
+      },
+      "armyFixture": {
+        "units": 29,
+        "coldDrawMs": 40.79999999701977,
+        "terrainPreparation": {
+          "ready": true,
+          "baseMs": 8.099999994039536,
+          "detailCpuMs": 7.099999979138374,
+          "maxChunkMs": 0.6000000089406967,
+          "elapsedMs": 384.79999999701977,
+          "remaining": 0,
+          "total": 1685,
+          "wallAfterFirstDrawMs": 348,
+          "frameCosts": {
+            "count": 17,
+            "meanMs": 4.605882354518947,
+            "p50Ms": 4.799999997019768,
+            "p95Ms": 5.299999997019768,
+            "maxMs": 5.299999997019768
+          }
+        },
+        "draw": {
+          "count": 240,
+          "meanMs": 2.1716666668032607,
+          "p50Ms": 2.1000000089406967,
+          "p95Ms": 2.5999999940395355,
+          "maxMs": 6
+        },
+        "frameInterval": {
+          "count": 239,
+          "meanMs": 17.014644351464437,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.799999999999727,
+          "maxMs": 33.39999999999998
+        },
+        "intervalsOver50Ms": 0
+      },
+      "controlledCombatEffects": {
+        "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+        "events": 64,
+        "draw": {
+          "count": 120,
+          "meanMs": 2.3333333329608044,
+          "p50Ms": 2.2999999970197678,
+          "p95Ms": 2.7000000029802322,
+          "maxMs": 5.200000002980232
+        },
+        "frameInterval": {
+          "count": 119,
+          "meanMs": 17.365546218487395,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.800000000000182,
+          "maxMs": 33.400000000000546
+        },
+        "intervalsOver50Ms": 0
+      },
+      "siegeArmyFixture": {
+        "units": 16,
+        "rams": 2,
+        "draw": {
+          "count": 120,
+          "meanMs": 1.8916666662941377,
+          "p50Ms": 1.8999999910593033,
+          "p95Ms": 2.1000000089406967,
+          "maxMs": 4.799999997019768
+        }
+      },
+      "tacticalArmyFixtures": [
+        {
+          "name": "assault",
+          "units": 30,
+          "activeUnits": 14,
+          "draw": {
+            "count": 120,
+            "meanMs": 2.294166666766008,
+            "p50Ms": 2.2000000029802322,
+            "p95Ms": 2.7000000029802322,
+            "maxMs": 3.9000000059604645
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 17.92689075630253,
+            "p50Ms": 16.69999999999891,
+            "p95Ms": 33.29999999999927,
+            "maxMs": 33.400000000001455
+          },
+          "intervalsOver50Ms": 0
+        },
+        {
+          "name": "retreat",
+          "units": 28,
+          "activeUnits": 6,
+          "draw": {
+            "count": 120,
+            "meanMs": 2.322500001018246,
+            "p50Ms": 2.2999999970197678,
+            "p95Ms": 2.7000000029802322,
+            "maxMs": 4.199999988079071
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 18.206722689075633,
+            "p50Ms": 16.69999999999891,
+            "p95Ms": 33.30000000000109,
+            "maxMs": 33.5
+          },
+          "intervalsOver50Ms": 0
+        }
+      ]
+    },
+    {
+      "name": "mobile-landscape",
+      "width": 844,
+      "height": 390,
+      "scale": 2,
+      "cpuRate": 1,
+      "live": {
+        "metrics": {
+          "stepMs": {
+            "count": 205,
+            "p50": 0.09999999403953552,
+            "p95": 0.20000000298023224,
+            "max": 7.700000002980232,
+            "over50ms": 0
+          },
+          "renderMs": {
+            "count": 615,
+            "p50": 1.2000000029802322,
+            "p95": 1.5,
+            "max": 4,
+            "over50ms": 0
+          },
+          "frameIntervalMs": {
+            "count": 615,
+            "p50": 16.699999999999818,
+            "p95": 16.700000000000728,
+            "max": 33.39999999999998,
+            "over50ms": 0
+          },
+          "viewport": {
+            "width": 844,
+            "height": 390,
+            "dpr": 2
+          }
+        },
+        "time": 10.25,
+        "unitCount": 14
+      },
+      "armyFixture": {
+        "units": 29,
+        "coldDrawMs": 36.8999999910593,
+        "terrainPreparation": {
+          "ready": true,
+          "baseMs": 8.799999997019768,
+          "detailCpuMs": 6.900000020861626,
+          "maxChunkMs": 0.6000000089406967,
+          "elapsedMs": 316.29999999701977,
+          "remaining": 0,
+          "total": 1685,
+          "wallAfterFirstDrawMs": 283.1000000089407,
+          "frameCosts": {
+            "count": 17,
+            "meanMs": 4.105882352765868,
+            "p50Ms": 4.299999997019768,
+            "p95Ms": 5.700000002980232,
+            "maxMs": 5.700000002980232
+          }
+        },
+        "draw": {
+          "count": 240,
+          "meanMs": 1.636249999826153,
+          "p50Ms": 1.5999999940395355,
+          "p95Ms": 1.9000000059604645,
+          "maxMs": 2.9000000059604645
+        },
+        "frameInterval": {
+          "count": 239,
+          "meanMs": 16.66569037656904,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.700000000000273,
+          "maxMs": 16.800000000000182
+        },
+        "intervalsOver50Ms": 0
+      },
+      "controlledCombatEffects": {
+        "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+        "events": 64,
+        "draw": {
+          "count": 120,
+          "meanMs": 1.8008333331594863,
+          "p50Ms": 1.7999999970197678,
+          "p95Ms": 2,
+          "maxMs": 2.2999999970197678
+        },
+        "frameInterval": {
+          "count": 119,
+          "meanMs": 16.66638655462185,
+          "p50Ms": 16.699999999999818,
+          "p95Ms": 16.799999999999272,
+          "maxMs": 16.800000000000182
+        },
+        "intervalsOver50Ms": 0
+      },
+      "siegeArmyFixture": {
+        "units": 16,
+        "rams": 2,
+        "draw": {
+          "count": 120,
+          "meanMs": 1.4233333326876163,
+          "p50Ms": 1.4000000059604645,
+          "p95Ms": 1.699999988079071,
+          "maxMs": 2.0999999940395355
+        }
+      },
+      "tacticalArmyFixtures": [
+        {
+          "name": "assault",
+          "units": 30,
+          "activeUnits": 14,
+          "draw": {
+            "count": 120,
+            "meanMs": 1.8350000000248352,
+            "p50Ms": 1.7999999970197678,
+            "p95Ms": 2.4000000059604645,
+            "maxMs": 4.100000008940697
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 16.6655462184874,
+            "p50Ms": 16.69999999999891,
+            "p95Ms": 16.799999999999272,
+            "maxMs": 16.80000000000109
+          },
+          "intervalsOver50Ms": 0
+        },
+        {
+          "name": "retreat",
+          "units": 28,
+          "activeUnits": 6,
+          "draw": {
+            "count": 120,
+            "meanMs": 1.7525000007202227,
+            "p50Ms": 1.7000000029802322,
+            "p95Ms": 1.9000000059604645,
+            "maxMs": 3.2999999970197678
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 16.6655462184874,
+            "p50Ms": 16.69999999999891,
+            "p95Ms": 16.700000000000728,
+            "maxMs": 16.799999999999272
+          },
+          "intervalsOver50Ms": 0
+        }
+      ]
+    },
+    {
+      "name": "mobile-landscape-cpu4x",
+      "width": 844,
+      "height": 390,
+      "scale": 2,
+      "cpuRate": 4,
+      "live": {
+        "metrics": {
+          "stepMs": {
+            "count": 223,
+            "p50": 0.29999999701976776,
+            "p95": 0.6000000089406967,
+            "max": 32.29999999701977,
+            "over50ms": 0
+          },
+          "renderMs": {
+            "count": 165,
+            "p50": 6.0999999940395355,
+            "p95": 8.300000011920929,
+            "max": 17.5,
+            "over50ms": 0
+          },
+          "frameIntervalMs": {
+            "count": 165,
+            "p50": 66.69999999999982,
+            "p95": 83.39999999999964,
+            "max": 216.60000000000014,
+            "over50ms": 147
+          },
+          "viewport": {
+            "width": 844,
+            "height": 390,
+            "dpr": 2
+          }
+        },
+        "time": 11.15,
+        "unitCount": 14
+      },
+      "armyFixture": {
+        "units": 29,
+        "coldDrawMs": 190.59999999403954,
+        "terrainPreparation": {
+          "ready": true,
+          "baseMs": 44.79999999701977,
+          "detailCpuMs": 32.3999999910593,
+          "maxChunkMs": 3.1000000089406967,
+          "elapsedMs": 1626.5,
+          "remaining": 0,
+          "total": 1685,
+          "wallAfterFirstDrawMs": 1453.6000000089407,
+          "frameCosts": {
+            "count": 17,
+            "meanMs": 21.00588235434364,
+            "p50Ms": 22.5,
+            "p95Ms": 23.900000005960464,
+            "maxMs": 23.900000005960464
+          }
+        },
+        "draw": {
+          "count": 240,
+          "meanMs": 8.317083333370586,
+          "p50Ms": 8,
+          "p95Ms": 10.799999997019768,
+          "maxMs": 16.400000005960464
+        },
+        "frameInterval": {
+          "count": 239,
+          "meanMs": 67.84937238493724,
+          "p50Ms": 66.69999999999982,
+          "p95Ms": 83.39999999999964,
+          "maxMs": 100
+        },
+        "intervalsOver50Ms": 221
+      },
+      "controlledCombatEffects": {
+        "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+        "events": 64,
+        "draw": {
+          "count": 120,
+          "meanMs": 8.903333333383005,
+          "p50Ms": 8.400000005960464,
+          "p95Ms": 11.599999994039536,
+          "maxMs": 22.799999997019768
+        },
+        "frameInterval": {
+          "count": 119,
+          "meanMs": 68.90504201680673,
+          "p50Ms": 66.70000000000073,
+          "p95Ms": 83.40000000000146,
+          "maxMs": 83.40000000000146
+        },
+        "intervalsOver50Ms": 114
+      },
+      "siegeArmyFixture": {
+        "units": 16,
+        "rams": 2,
+        "draw": {
+          "count": 120,
+          "meanMs": 6.999999999627471,
+          "p50Ms": 6.799999997019768,
+          "p95Ms": 8.799999997019768,
+          "maxMs": 13.100000008940697
+        }
+      },
+      "tacticalArmyFixtures": [
+        {
+          "name": "assault",
+          "units": 30,
+          "activeUnits": 14,
+          "draw": {
+            "count": 120,
+            "meanMs": 8.431666667511065,
+            "p50Ms": 8.100000008940697,
+            "p95Ms": 10.399999991059303,
+            "maxMs": 18.399999991059303
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 70.72521008403363,
+            "p50Ms": 66.69999999999709,
+            "p95Ms": 83.40000000000146,
+            "maxMs": 83.40000000000146
+          },
+          "intervalsOver50Ms": 117
+        },
+        {
+          "name": "retreat",
+          "units": 28,
+          "activeUnits": 6,
+          "draw": {
+            "count": 120,
+            "meanMs": 8.482500000546375,
+            "p50Ms": 8.299999997019768,
+            "p95Ms": 10.300000011920929,
+            "maxMs": 14
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 73.80672268907563,
+            "p50Ms": 66.70000000000437,
+            "p95Ms": 83.40000000000146,
+            "maxMs": 83.5
+          },
+          "intervalsOver50Ms": 118
+        }
+      ]
+    }
+  ],
+  "baselineTask004": {
+    "measuredAt": "2026-11-08T23:00:00.837Z",
+    "environment": {
+      "platform": "win32",
+      "release": "10.0.26200",
+      "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+      "logicalCpus": 16,
+      "node": "v22.23.2",
+      "chromium": "158.0.8127.18"
+    },
+    "caveat": "Headless Chromium on this host with desktop/mobile viewport emulation. CPU-throttled results are diagnostics, not physical-device performance or an iPhoneFPS claim. Canvas draw durations measure browser CPU submission cost, not GPU completion.",
+    "simulation": {
+      "fixtureSimulationTime": 240,
+      "fixtureUnits": 29,
+      "maximumUnits": 29,
+      "fixedStepSeconds": 0.05,
+      "steps": {
+        "count": 4000,
+        "meanMs": 0.2942757250000035,
+        "p50Ms": 0.17909999999983484,
+        "p95Ms": 0.6761999999998807,
+        "maxMs": 13.452800000000025
+      },
+      "groupOrders": {
+        "count": 40,
+        "meanMs": 0.3996875000000159,
+        "p50Ms": 0.1954000000000633,
+        "p95Ms": 1.2318999999997686,
+        "maxMs": 2.816400000000158
+      },
+      "groupOrderResults": {
+        "accepted": 20,
+        "rejected": 20
+      },
+      "movement": {
+        "enabled": true,
+        "pathCalls": 3610,
+        "expandedNodes": 47060,
+        "totalPathMs": 454.1288000000068,
+        "maxPathMs": 2.2914999999998145,
+        "separationCalls": 4000,
+        "totalSeparationMs": 235.63810000001376,
+        "maxSeparationMs": 0.5344000000000051
+      }
+    },
+    "browser": [
+      {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900,
+        "scale": 1,
+        "cpuRate": 1,
+        "live": {
+          "metrics": {
+            "stepMs": {
+              "count": 203,
+              "p50": 0.09999999403953552,
+              "p95": 0.20000001788139343,
+              "max": 1.5,
+              "over50ms": 0
+            },
+            "renderMs": {
+              "count": 610,
+              "p50": 1.199999988079071,
+              "p95": 1.600000023841858,
+              "max": 4.0999999940395355,
+              "over50ms": 0
+            },
+            "frameIntervalMs": {
+              "count": 610,
+              "p50": 16.699999999999818,
+              "p95": 16.799999999999272,
+              "max": 33.400000000000034,
+              "over50ms": 0
+            },
+            "viewport": {
+              "width": 1440,
+              "height": 900,
+              "dpr": 1
+            }
+          },
+          "time": 10.15,
+          "unitCount": 14
+        },
+        "armyFixture": {
+          "units": 29,
+          "coldDrawMs": 35.400000005960464,
+          "terrainPreparation": {
+            "ready": true,
+            "baseMs": 7.899999976158142,
+            "detailCpuMs": 6.700000017881393,
+            "maxChunkMs": 0.699999988079071,
+            "elapsedMs": 351.09999999403954,
+            "remaining": 0,
+            "total": 1685,
+            "wallAfterFirstDrawMs": 319.39999997615814,
+            "frameCosts": {
+              "count": 17,
+              "meanMs": 4.364705883404788,
+              "p50Ms": 4.5999999940395355,
+              "p95Ms": 5,
+              "maxMs": 5
+            }
+          },
+          "draw": {
+            "count": 240,
+            "meanMs": 1.9904166681071123,
+            "p50Ms": 1.9000000059604645,
+            "p95Ms": 2.300000011920929,
+            "maxMs": 5.5999999940395355
+          },
+          "frameInterval": {
+            "count": 239,
+            "meanMs": 16.666108786610877,
+            "p50Ms": 16.699999999999818,
+            "p95Ms": 16.799999999999727,
+            "maxMs": 16.800000000000182
+          },
+          "intervalsOver50Ms": 0
+        },
+        "controlledCombatEffects": {
+          "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+          "events": 64,
+          "draw": {
+            "count": 120,
+            "meanMs": 2.1450000015397865,
+            "p50Ms": 2.0999999940395355,
+            "p95Ms": 2.300000011920929,
+            "maxMs": 5
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 16.66638655462185,
+            "p50Ms": 16.699999999999818,
+            "p95Ms": 16.800000000000182,
+            "maxMs": 16.800000000000182
+          },
+          "intervalsOver50Ms": 0
+        },
+        "siegeArmyFixture": {
+          "units": 16,
+          "rams": 2,
+          "draw": {
+            "count": 120,
+            "meanMs": 1.8300000001986823,
+            "p50Ms": 1.800000011920929,
+            "p95Ms": 2.100000023841858,
+            "maxMs": 3.0999999940395355
+          }
+        }
+      },
+      {
+        "name": "mobile-landscape",
+        "width": 844,
+        "height": 390,
+        "scale": 2,
+        "cpuRate": 1,
+        "live": {
+          "metrics": {
+            "stepMs": {
+              "count": 203,
+              "p50": 0.09999999403953552,
+              "p95": 0.19999998807907104,
+              "max": 1.4000000059604645,
+              "over50ms": 0
+            },
+            "renderMs": {
+              "count": 609,
+              "p50": 1.0999999940395355,
+              "p95": 1.2000000178813934,
+              "max": 3.5999999940395355,
+              "over50ms": 0
+            },
+            "frameIntervalMs": {
+              "count": 609,
+              "p50": 16.699999999999818,
+              "p95": 16.700000000000728,
+              "max": 33.39999999999998,
+              "over50ms": 0
+            },
+            "viewport": {
+              "width": 844,
+              "height": 390,
+              "dpr": 2
+            }
+          },
+          "time": 10.15,
+          "unitCount": 14
+        },
+        "armyFixture": {
+          "units": 29,
+          "coldDrawMs": 36.79999998211861,
+          "terrainPreparation": {
+            "ready": true,
+            "baseMs": 8.099999994039536,
+            "detailCpuMs": 5.799999982118607,
+            "maxChunkMs": 0.6000000238418579,
+            "elapsedMs": 311.69999998807907,
+            "remaining": 0,
+            "total": 1685,
+            "wallAfterFirstDrawMs": 278.10000002384186,
+            "frameCosts": {
+              "count": 17,
+              "meanMs": 3.6352941148421345,
+              "p50Ms": 3.7999999821186066,
+              "p95Ms": 5.199999988079071,
+              "maxMs": 5.199999988079071
+            }
+          },
+          "draw": {
+            "count": 240,
+            "meanMs": 1.5545833335568509,
+            "p50Ms": 1.5,
+            "p95Ms": 1.800000011920929,
+            "maxMs": 2.699999988079071
+          },
+          "frameInterval": {
+            "count": 239,
+            "meanMs": 16.666108786610877,
+            "p50Ms": 16.699999999999818,
+            "p95Ms": 16.799999999999955,
+            "maxMs": 16.800000000000182
+          },
+          "intervalsOver50Ms": 0
+        },
+        "controlledCombatEffects": {
+          "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+          "events": 64,
+          "draw": {
+            "count": 120,
+            "meanMs": 1.736666665971279,
+            "p50Ms": 1.7000000178813934,
+            "p95Ms": 1.9000000059604645,
+            "maxMs": 2.9000000059604645
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 16.664705882352937,
+            "p50Ms": 16.699999999999818,
+            "p95Ms": 16.800000000000182,
+            "maxMs": 16.800000000000182
+          },
+          "intervalsOver50Ms": 0
+        },
+        "siegeArmyFixture": {
+          "units": 16,
+          "rams": 2,
+          "draw": {
+            "count": 120,
+            "meanMs": 1.3899999986092249,
+            "p50Ms": 1.399999976158142,
+            "p95Ms": 1.5999999940395355,
+            "maxMs": 2.199999988079071
+          }
+        }
+      },
+      {
+        "name": "mobile-landscape-cpu4x",
+        "width": 844,
+        "height": 390,
+        "scale": 2,
+        "cpuRate": 4,
+        "live": {
+          "metrics": {
+            "stepMs": {
+              "count": 220,
+              "p50": 0.20000001788139343,
+              "p95": 0.5999999940395355,
+              "max": 9.199999988079071,
+              "over50ms": 0
+            },
+            "renderMs": {
+              "count": 185,
+              "p50": 5.100000023841858,
+              "p95": 6.5,
+              "max": 18.400000005960464,
+              "over50ms": 0
+            },
+            "frameIntervalMs": {
+              "count": 185,
+              "p50": 66.59999999999945,
+              "p95": 66.80000000000018,
+              "max": 199.89999999999986,
+              "over50ms": 116
+            },
+            "viewport": {
+              "width": 844,
+              "height": 390,
+              "dpr": 2
+            }
+          },
+          "time": 11,
+          "unitCount": 14
+        },
+        "armyFixture": {
+          "units": 29,
+          "coldDrawMs": 159.30000001192093,
+          "terrainPreparation": {
+            "ready": true,
+            "baseMs": 33.29999998211861,
+            "detailCpuMs": 29.19999998807907,
+            "maxChunkMs": 2.699999988079071,
+            "elapsedMs": 1412.199999988079,
+            "remaining": 0,
+            "total": 1685,
+            "wallAfterFirstDrawMs": 1268.5999999940395,
+            "frameCosts": {
+              "count": 17,
+              "meanMs": 18.4647058791974,
+              "p50Ms": 19.30000001192093,
+              "p95Ms": 22.899999976158142,
+              "maxMs": 22.899999976158142
+            }
+          },
+          "draw": {
+            "count": 240,
+            "meanMs": 7.439583333581686,
+            "p50Ms": 7.199999988079071,
+            "p95Ms": 9.199999988079071,
+            "maxMs": 16.299999982118607
+          },
+          "frameInterval": {
+            "count": 239,
+            "meanMs": 61.36443514644351,
+            "p50Ms": 66.60000000000036,
+            "p95Ms": 66.70000000000073,
+            "maxMs": 83.40000000000055
+          },
+          "intervalsOver50Ms": 174
+        },
+        "controlledCombatEffects": {
+          "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+          "events": 64,
+          "draw": {
+            "count": 120,
+            "meanMs": 7.888333333532016,
+            "p50Ms": 7.600000023841858,
+            "p95Ms": 9.699999988079071,
+            "maxMs": 15
+          },
+          "frameInterval": {
+            "count": 119,
+            "meanMs": 62.74201680672268,
+            "p50Ms": 66.60000000000218,
+            "p95Ms": 66.70000000000073,
+            "maxMs": 83.30000000000291
+          },
+          "intervalsOver50Ms": 96
+        },
+        "siegeArmyFixture": {
+          "units": 16,
+          "rams": 2,
+          "draw": {
+            "count": 120,
+            "meanMs": 6.474999999503295,
+            "p50Ms": 6.300000011920929,
+            "p95Ms": 8.400000005960464,
+            "maxMs": 11.900000005960464
+          }
+        }
+      }
+    ],
+    "baselineTask003": {
+      "measuredAt": "2026-11-08T19:45:30.488Z",
+      "environment": {
+        "platform": "win32",
+        "release": "10.0.26200",
+        "cpu": "11th Gen Intel(R) Core(TM) i7-11800H @ 2.30GHz",
+        "logicalCpus": 16,
+        "node": "v22.23.2",
+        "chromium": "158.0.8127.18"
+      },
+      "caveat": "Headless Chromium on this host with desktop/mobile viewport emulation. CPU-throttled results are diagnostics, not physical-device performance or an iPhoneFPS claim. Canvas draw durations measure browser CPU submission cost, not GPU completion.",
+      "simulation": {
+        "fixtureSimulationTime": 240,
+        "fixtureUnits": 29,
+        "maximumUnits": 29,
+        "fixedStepSeconds": 0.05,
+        "steps": {
+          "count": 4000,
+          "meanMs": 0.261707175000002,
+          "p50Ms": 0.15499999999997272,
+          "p95Ms": 0.6098000000000638,
+          "maxMs": 12.512500000000045
+        },
+        "groupOrders": {
+          "count": 40,
+          "meanMs": 0.4665749999999974,
+          "p50Ms": 0.1587000000001808,
+          "p95Ms": 3.217800000000011,
+          "maxMs": 5.007499999999936
+        },
+        "movement": {
+          "enabled": true,
+          "pathCalls": 3610,
+          "expandedNodes": 47060,
+          "totalPathMs": 423.13119999998867,
+          "maxPathMs": 2.3193999999999733,
+          "separationCalls": 4000,
+          "totalSeparationMs": 202.12799999999743,
+          "maxSeparationMs": 1.0366000000000213
+        }
+      },
+      "browser": [
+        {
+          "name": "desktop",
+          "width": 1440,
+          "height": 900,
+          "scale": 1,
+          "cpuRate": 1,
+          "live": {
+            "metrics": {
+              "stepMs": {
+                "count": 202,
+                "p50": 0.09999999403953552,
+                "p95": 0.20000001788139343,
+                "max": 1.4000000059604645,
+                "over50ms": 0
+              },
+              "renderMs": {
+                "count": 605,
+                "p50": 1.100000023841858,
+                "p95": 1.300000011920929,
+                "max": 2.2000000178813934,
+                "over50ms": 0
+              },
+              "frameIntervalMs": {
+                "count": 605,
+                "p50": 16.699999999999818,
+                "p95": 16.799999999999727,
+                "max": 33.39999999999998,
+                "over50ms": 0
+              },
+              "viewport": {
+                "width": 1440,
+                "height": 900,
+                "dpr": 1
+              }
+            },
+            "time": 10.1,
+            "unitCount": 14
+          },
+          "armyFixture": {
+            "units": 29,
+            "coldDrawMs": 67.09999999403954,
+            "draw": {
+              "count": 240,
+              "meanMs": 1.9175000013162693,
+              "p50Ms": 1.9000000059604645,
+              "p95Ms": 2.2000000178813934,
+              "maxMs": 3.5999999940395355
+            },
+            "frameInterval": {
+              "count": 239,
+              "meanMs": 16.945188284518828,
+              "p50Ms": 16.699999999999818,
+              "p95Ms": 16.799999999999727,
+              "maxMs": 83.4
+            },
+            "intervalsOver50Ms": 1
+          },
+          "controlledCombatEffects": {
+            "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+            "events": 64,
+            "draw": {
+              "count": 120,
+              "meanMs": 2.059999999155601,
+              "p50Ms": 2,
+              "p95Ms": 2.5,
+              "maxMs": 4.100000023841858
+            },
+            "frameInterval": {
+              "count": 119,
+              "meanMs": 16.665546218487393,
+              "p50Ms": 16.699999999999818,
+              "p95Ms": 16.800000000000182,
+              "maxMs": 16.800000000000182
+            },
+            "intervalsOver50Ms": 0
+          }
+        },
+        {
+          "name": "mobile-landscape",
+          "width": 844,
+          "height": 390,
+          "scale": 2,
+          "cpuRate": 1,
+          "live": {
+            "metrics": {
+              "stepMs": {
+                "count": 202,
+                "p50": 0.09999999403953552,
+                "p95": 0.20000001788139343,
+                "max": 1.2999999821186066,
+                "over50ms": 0
+              },
+              "renderMs": {
+                "count": 608,
+                "p50": 1,
+                "p95": 1.2000000178813934,
+                "max": 1.5999999940395355,
+                "over50ms": 0
+              },
+              "frameIntervalMs": {
+                "count": 608,
+                "p50": 16.699999999999818,
+                "p95": 16.700000000000728,
+                "max": 33.400000000000006,
+                "over50ms": 0
+              },
+              "viewport": {
+                "width": 844,
+                "height": 390,
+                "dpr": 2
+              }
+            },
+            "time": 10.1,
+            "unitCount": 14
+          },
+          "armyFixture": {
+            "units": 29,
+            "coldDrawMs": 65.90000000596046,
+            "draw": {
+              "count": 240,
+              "meanMs": 1.467500000571211,
+              "p50Ms": 1.4000000059604645,
+              "p95Ms": 1.800000011920929,
+              "maxMs": 3.199999988079071
+            },
+            "frameInterval": {
+              "count": 239,
+              "meanMs": 16.87531380753138,
+              "p50Ms": 16.699999999999818,
+              "p95Ms": 16.700000000000273,
+              "maxMs": 66.69999999999999
+            },
+            "intervalsOver50Ms": 1
+          },
+          "controlledCombatEffects": {
+            "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+            "events": 64,
+            "draw": {
+              "count": 120,
+              "meanMs": 1.6124999982615311,
+              "p50Ms": 1.5999999940395355,
+              "p95Ms": 1.9000000059604645,
+              "maxMs": 2.5
+            },
+            "frameInterval": {
+              "count": 119,
+              "meanMs": 16.665546218487393,
+              "p50Ms": 16.699999999999818,
+              "p95Ms": 16.800000000000182,
+              "maxMs": 16.800000000000182
+            },
+            "intervalsOver50Ms": 0
+          }
+        },
+        {
+          "name": "mobile-landscape-cpu4x",
+          "width": 844,
+          "height": 390,
+          "scale": 2,
+          "cpuRate": 4,
+          "live": {
+            "metrics": {
+              "stepMs": {
+                "count": 218,
+                "p50": 0.20000001788139343,
+                "p95": 0.9000000059604645,
+                "max": 5.399999976158142,
+                "over50ms": 0
+              },
+              "renderMs": {
+                "count": 189,
+                "p50": 4.9000000059604645,
+                "p95": 7,
+                "max": 9,
+                "over50ms": 0
+              },
+              "frameIntervalMs": {
+                "count": 189,
+                "p50": 50.100000000000364,
+                "p95": 66.70000000000073,
+                "max": 183.39999999999986,
+                "over50ms": 101
+              },
+              "viewport": {
+                "width": 844,
+                "height": 390,
+                "dpr": 2
+              }
+            },
+            "time": 10.9,
+            "unitCount": 14
+          },
+          "armyFixture": {
+            "units": 29,
+            "coldDrawMs": 294.19999998807907,
+            "draw": {
+              "count": 240,
+              "meanMs": 7.192083333060145,
+              "p50Ms": 6.9000000059604645,
+              "p95Ms": 9.400000005960464,
+              "maxMs": 14.799999982118607
+            },
+            "frameInterval": {
+              "count": 239,
+              "meanMs": 60.59748953974895,
+              "p50Ms": 66.59999999999991,
+              "p95Ms": 66.70000000000073,
+              "maxMs": 416.70000000000005
+            },
+            "intervalsOver50Ms": 147
+          },
+          "controlledCombatEffects": {
+            "label": "Controlled64-event renderer stress fixture; not a legal battle result",
+            "events": 64,
+            "draw": {
+              "count": 120,
+              "meanMs": 7.613333333780369,
+              "p50Ms": 7.300000011920929,
+              "p95Ms": 9.600000023841858,
+              "maxMs": 14.599999994039536
+            },
+            "frameInterval": {
+              "count": 119,
+              "meanMs": 61.06134453781512,
+              "p50Ms": 66.60000000000218,
+              "p95Ms": 66.70000000000073,
+              "maxMs": 66.80000000000291
+            },
+            "intervalsOver50Ms": 85
+          }
+        }
+      ]
+    },
+    "siegeFixture": {
+      "time": 375,
+      "units": 16,
+      "rams": 2,
+      "maximumUnits": 17,
+      "steps": {
+        "count": 4000,
+        "meanMs": 0.07721812500000158,
+        "p50Ms": 0.05610000000024229,
+        "p95Ms": 0.12590000000000146,
+        "maxMs": 1.465599999999995
+      },
+      "groupOrders": {
+        "count": 40,
+        "meanMs": 0.3554299999999898,
+        "p50Ms": 0.13799999999991996,
+        "p95Ms": 1.0401999999999134,
+        "maxMs": 1.1929000000000087
+      },
+      "groupOrderResults": {
+        "accepted": 40,
+        "rejected": 0
+      },
+      "movement": {
+        "enabled": true,
+        "pathCalls": 1580,
+        "expandedNodes": 7850,
+        "totalPathMs": 62.10040000000845,
+        "maxPathMs": 0.5251000000002932,
+        "separationCalls": 4000,
+        "totalSeparationMs": 106.72680000000446,
+        "maxSeparationMs": 0.48240000000032524
+      }
+    },
+    "comparisonToTask003": {
+      "note": "Same host and equivalent conventional240-second/29-unit scenario. Timings are single-run measurements and can vary; siege375-second fixture is a different workload and reported separately.",
+      "simulationStepP95Ms": {
+        "task003": 0.6098000000000638,
+        "task004": 0.6761999999998807
+      },
+      "groupOrderP95Ms": {
+        "task003": 3.217800000000011,
+        "task004": 1.2318999999997686
+      },
+      "browser": [
+        {
+          "name": "desktop",
+          "liveDrawP95Ms": {
+            "task003": 1.300000011920929,
+            "task004": 1.600000023841858
+          },
+          "warmArmyDrawP95Ms": {
+            "task003": 2.2000000178813934,
+            "task004": 2.300000011920929
+          },
+          "coldDrawMs": {
+            "task003": 67.09999999403954,
+            "task004": 35.400000005960464
+          }
+        },
+        {
+          "name": "mobile-landscape",
+          "liveDrawP95Ms": {
+            "task003": 1.2000000178813934,
+            "task004": 1.2000000178813934
+          },
+          "warmArmyDrawP95Ms": {
+            "task003": 1.800000011920929,
+            "task004": 1.800000011920929
+          },
+          "coldDrawMs": {
+            "task003": 65.90000000596046,
+            "task004": 36.79999998211861
+          }
+        },
+        {
+          "name": "mobile-landscape-cpu4x",
+          "liveDrawP95Ms": {
+            "task003": 7,
+            "task004": 6.5
+          },
+          "warmArmyDrawP95Ms": {
+            "task003": 9.400000005960464,
+            "task004": 9.199999988079071
+          },
+          "coldDrawMs": {
+            "task003": 294.19999998807907,
+            "task004": 159.30000001192093
+          }
+        }
+      ]
+    }
+  },
+  "siegeFixture": {
+    "time": 375,
+    "units": 16,
+    "rams": 2,
+    "maximumUnits": 17,
+    "steps": {
+      "count": 4000,
+      "meanMs": 0.08595602499999984,
+      "p50Ms": 0.06140000000004875,
+      "p95Ms": 0.14869999999973516,
+      "maxMs": 1.5851999999999862
+    },
+    "groupOrders": {
+      "count": 40,
+      "meanMs": 0.4000575000000254,
+      "p50Ms": 0.1746000000002823,
+      "p95Ms": 1.211999999999989,
+      "maxMs": 1.2262000000000626
+    },
+    "groupOrderResults": {
+      "accepted": 40,
+      "rejected": 0
+    },
+    "movement": {
+      "enabled": true,
+      "pathCalls": 1580,
+      "expandedNodes": 7850,
+      "totalPathMs": 67.49199999999519,
+      "maxPathMs": 0.6977000000001681,
+      "separationCalls": 4000,
+      "totalSeparationMs": 117.00659999999607,
+      "maxSeparationMs": 0.5318999999999505
+    }
+  },
+  "tacticalSimulation": [
+    {
+      "name": "assault",
+      "fixtureTime": 355,
+      "fixtureUnits": 30,
+      "activeUnits": 14,
+      "maximumUnits": 30,
+      "steps": {
+        "count": 4000,
+        "meanMs": 0.3068863250000088,
+        "p50Ms": 0.24209999999948195,
+        "p95Ms": 0.6424999999999272,
+        "maxMs": 3.1481000000003405
+      },
+      "movement": {
+        "enabled": true,
+        "pathCalls": 3400,
+        "expandedNodes": 13750,
+        "totalPathMs": 125.3324999999677,
+        "maxPathMs": 0.8942000000006374,
+        "separationCalls": 4000,
+        "totalSeparationMs": 320.9286999999931,
+        "maxSeparationMs": 1.089600000000246
+      },
+      "ordersReplacedDuringSteps": false
+    },
+    {
+      "name": "retreat",
+      "fixtureTime": 375,
+      "fixtureUnits": 28,
+      "activeUnits": 6,
+      "maximumUnits": 28,
+      "steps": {
+        "count": 4000,
+        "meanMs": 0.1679124249999993,
+        "p50Ms": 0.15450000000055297,
+        "p95Ms": 0.22639999999955762,
+        "maxMs": 1.2205000000003565
+      },
+      "movement": {
+        "enabled": true,
+        "pathCalls": 580,
+        "expandedNodes": 1960,
+        "totalPathMs": 16.599299999987124,
+        "maxPathMs": 0.2309000000004744,
+        "separationCalls": 4000,
+        "totalSeparationMs": 264.708400000035,
+        "maxSeparationMs": 0.6608999999998559
+      },
+      "ordersReplacedDuringSteps": false
+    }
+  ],
+  "tacticalCommandCosts": {
+    "assault": {
+      "count": 10,
+      "meanMs": 2.8778299999999946,
+      "p50Ms": 2.6068999999997686,
+      "p95Ms": 4.044699999999466,
+      "maxMs": 4.044699999999466
+    },
+    "retreat": {
+      "count": 10,
+      "meanMs": 0.1649899999999434,
+      "p50Ms": 0.16679999999996653,
+      "p95Ms": 0.1811999999999898,
+      "maxMs": 0.1811999999999898
+    },
+    "acceptedAssault": 10,
+    "acceptedRetreat": 10,
+    "movement": {
+      "enabled": true,
+      "pathCalls": 10,
+      "expandedNodes": 990,
+      "totalPathMs": 13.48069999999916,
+      "maxPathMs": 1.890400000000227,
+      "separationCalls": 0,
+      "totalSeparationMs": 0,
+      "maxSeparationMs": 0
+    }
+  },
+  "comparisonToTask004": {
+    "note": "Same host and equivalent conventional240-second/29-unit scenario. Timings are single-run measurements and can vary; siege375-second fixture is a different workload and reported separately.",
+    "simulationStepP95Ms": {
+      "task004": 0.6761999999998807,
+      "task005": 0.7426000000000386
+    },
+    "groupOrderP95Ms": {
+      "task004": 1.2318999999997686,
+      "task005": 2.4646999999999935
+    },
+    "browser": [
+      {
+        "name": "desktop",
+        "liveDrawP95Ms": {
+          "task004": 1.600000023841858,
+          "task005": 1.5
+        },
+        "warmArmyDrawP95Ms": {
+          "task004": 2.300000011920929,
+          "task005": 2.5999999940395355
+        },
+        "coldDrawMs": {
+          "task004": 35.400000005960464,
+          "task005": 40.79999999701977
+        }
+      },
+      {
+        "name": "mobile-landscape",
+        "liveDrawP95Ms": {
+          "task004": 1.2000000178813934,
+          "task005": 1.5
+        },
+        "warmArmyDrawP95Ms": {
+          "task004": 1.800000011920929,
+          "task005": 1.9000000059604645
+        },
+        "coldDrawMs": {
+          "task004": 36.79999998211861,
+          "task005": 36.8999999910593
+        }
+      },
+      {
+        "name": "mobile-landscape-cpu4x",
+        "liveDrawP95Ms": {
+          "task004": 6.5,
+          "task005": 8.300000011920929
+        },
+        "warmArmyDrawP95Ms": {
+          "task004": 9.199999988079071,
+          "task005": 10.799999997019768
+        },
+        "coldDrawMs": {
+          "task004": 159.30000001192093,
+          "task005": 190.59999999403954
+        }
+      }
+    ]
+  }
+}

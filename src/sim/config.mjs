@@ -1,0 +1,106 @@
+import { BUILDINGS, UNITS, POPULATION_CAP } from "./rules.mjs";
+
+export { POPULATION_CAP };
+export const STEP = 0.05;
+export const BUILDING_TYPES = Object.freeze({
+  townCenter: {
+    label: "Town Center",
+    width: 3,
+    height: 3,
+    hp: 2600,
+    cost: {},
+    buildTime: 0,
+    range: 5,
+    damage: 14,
+    period: 1.5,
+  },
+  farm: { ...BUILDINGS.farm, label: "Farm", buildTime: 22, food: 650 },
+  barracks: {
+    ...BUILDINGS.barracks,
+    label: "Barracks",
+    hp: 650,
+    buildTime: 35,
+  },
+  tower: {
+    ...BUILDINGS.tower,
+    label: "Watchtower",
+    hp: 700,
+    buildTime: 30,
+    range: 6,
+    damage: 28,
+    period: 1.4,
+  },
+  workshop: {
+    label: "Siege Workshop",
+    width: 3,
+    height: 2,
+    hp: 800,
+    cost: Object.freeze({ wood: 120, stone: 70, gold: 30 }),
+    buildTime: 45,
+  },
+});
+export const UNIT_TYPES = Object.freeze({
+  worker: {
+    ...UNITS.worker,
+    label: "Worker",
+    producer: "townCenter",
+    speed: 2.35,
+    trainTime: 14,
+    capacity: 18,
+    gatherRate: 1.8,
+    sight: 5,
+  },
+  swordsman: {
+    ...UNITS.swordsman,
+    label: "Swordsman",
+    producer: "barracks",
+    speed: 2.25,
+    trainTime: 28,
+    sight: 6,
+  },
+  archer: {
+    ...UNITS.archer,
+    label: "Archer",
+    producer: "barracks",
+    speed: 2.35,
+    trainTime: 32,
+    sight: 7,
+  },
+  ram: {
+    label: "Siege Ram",
+    producer: "workshop",
+    hp: 360,
+    damage: 9,
+    structureDamage: 135,
+    range: 1.05,
+    period: 2.4,
+    speed: 1.1,
+    sight: 6,
+    radius: 0.44,
+    cost: Object.freeze({ wood: 80, gold: 60, food: 30 }),
+    trainTime: 45,
+  },
+  infantry: {
+    label: "Ember infantry",
+    hp: 110,
+    damage: 18,
+    range: 1,
+    period: 1.1,
+    speed: 1.9,
+    sight: 6,
+    cost: {},
+    trainTime: 20,
+  },
+});
+export const INITIAL_RESOURCES = Object.freeze({
+  wood: 230,
+  stone: 150,
+  food: 240,
+  gold: 100,
+});
+export const AI_CONFIG = Object.freeze({
+  firstRaid: 180,
+  raidInterval: 125,
+  reinforcementInterval: 33,
+  maximumArmy: 20,
+});

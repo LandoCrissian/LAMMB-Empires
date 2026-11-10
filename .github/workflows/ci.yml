@@ -1,0 +1,78 @@
+name: Frontier checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  simulation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run test:balance
+      - run: npm run test:siege
+      - run: npm run test:command
+      - run: npm run build
+  browser:
+    needs: simulation
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Separate hosts prevent software-rendering contention; each uses one worker.
+      max-parallel: 2
+      matrix:
+        include:
+          - project: desktop-chromium
+            engine: chromium
+          - project: mobile-chromium
+            engine: chromium
+          - project: landscape-chromium
+            engine: chromium
+          - project: landscape-webkit
+            engine: webkit
+          - project: rally-siege-desktop-chromium
+            engine: chromium
+          - project: rally-siege-mobile-chromium
+            engine: chromium
+          - project: rally-siege-mobile-webkit
+            engine: webkit
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps ${{ matrix.engine }}
+      - run: npm run test:browser -- --project=${{ matrix.project }} --workers=1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-verification-${{ matrix.project }}
+          path: |
+            docs/screenshots/task005/${{ matrix.project }}-*.png
+            docs/screenshots/task005/baseline-${{ matrix.project }}-*.png
+            docs/performance/task005-gestures-${{ matrix.project }}.json
+            docs/performance/task005-journey-${{ matrix.project }}.json
+            test-results/
+          retention-days: 14
+  test:
+    # Keep the original aggregate check name for existing branch requirements.
+    if: always()
+    needs: [simulation, browser]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every simulation and browser project
+        env:
+          SIMULATION_RESULT: ${{ needs.simulation.result }}
+          BROWSER_RESULT: ${{ needs.browser.result }}
+        run: |
+          if [ "$SIMULATION_RESULT" != "success" ] || [ "$BROWSER_RESULT" != "success" ]; then
+            exit 1
+          fi

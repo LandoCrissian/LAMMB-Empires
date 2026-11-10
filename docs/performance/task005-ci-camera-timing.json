@@ -1,0 +1,173 @@
+{
+  "date": "2026-11-09",
+  "baselineCommit": "379255631ccaac899b013c452b0f2286ae5911a2",
+  "failedGitHubRun": 42724918475,
+  "failedGitHubJob": 129528207553,
+  "project": "rally-siege-mobile-webkit",
+  "test": "a second UI surface cancels pending battlefield input without orders",
+  "ciResult": {
+    "otherBrowserProjectsPassed": 6,
+    "simulationPassed": 98,
+    "legalAndBuildChecks": "passed",
+    "browserPassed": 85,
+    "browserSkipped": 3,
+    "browserFailed": 1
+  },
+  "failedTrace": {
+    "keydownDms": 91971.105,
+    "minimapPointerInterruptionMs": 92193.072,
+    "minimapDestination": {
+      "x": 24,
+      "y": 18
+    },
+    "cameraFirstAfterHandoff": {
+      "atMs": 92337.669,
+      "x": 24.90277777777778,
+      "y": 17.097222222222225,
+      "zoom": 0.9
+    },
+    "continuedCameraAtMs": 92343.293,
+    "fixedWallSleepRequestedMs": 180,
+    "nextCameraAtMs": 92533.46,
+    "nextCamera": {
+      "x": 24.90277777777778,
+      "y": 17.097222222222225,
+      "zoom": 0.9
+    },
+    "simulationSnapshots": [
+      {
+        "atMs": 91541.461,
+        "time": 1.35
+      },
+      {
+        "atMs": 92236.752,
+        "time": 1.95
+      },
+      {
+        "atMs": 92326.358,
+        "time": 2.05
+      }
+    ],
+    "simulationSnapshotAfterFixedSleep": "not captured; the trace cannot establish whether animation/simulation frames advanced during that interval",
+    "retainedDArithmeticWitness": {
+      "formula": "520 * 0.1 / (64 * 0.9)",
+      "expectedOneCappedFrameDelta": 0.9027777777777777,
+      "observedDelta": {
+        "x": 0.9027777777777786,
+        "y": -0.902777777777775
+      }
+    },
+    "interpretation": "D remained held through UI gesture cancellation and produced exactly one capped 0.1-second camera update after minimap navigation. The unchanged camera after a fixed 180-ms wall sleep does not establish loss of key state. The exact later frame/resize/blur cause is not proven by this trace."
+  },
+  "patch": {
+    "productSourceChanges": false,
+    "totalCaseBudgetMs": 30000,
+    "movementPollMaximumMs": 5000,
+    "minimumObservedMovementTiles": 0.05,
+    "assertions": [
+      "D stays held throughout a bounded poll for actual further camera movement.",
+      "Camera x increases and y decreases in the D direction.",
+      "Camera zoom stays unchanged.",
+      "D is released in finally.",
+      "Original selection, orders, supplies, paid-production and cross-surface gesture assertions remain.",
+      "Supplies are checked again after releasing D."
+    ],
+    "retries": 0,
+    "forcedActions": false,
+    "responsivenessGuaranteeMs": null
+  },
+  "localHost": "Windows 10.0.26200 / Intel Core i7-11800H / Playwright 1.65.0 / Chromium 158.0.8127.18 / WebKit27.2",
+  "threeFreshWebkitRepeats": [
+    {
+      "project": "rally-siege-mobile-webkit",
+      "result": "passed",
+      "caseWallSeconds": 2.1,
+      "movementWaitWallMs": 128,
+      "dx": 1.7604166666666679,
+      "dy": -1.7604166666666607,
+      "zoom": 0.9,
+      "finalSimulationTime": 1.05,
+      "coverage": "Real mouse plus DOM UI-pointer interruption; not native multi-touch"
+    },
+    {
+      "project": "rally-siege-mobile-webkit",
+      "result": "passed",
+      "caseWallSeconds": 2.0,
+      "movementWaitWallMs": 135,
+      "dx": 1.2638888888888893,
+      "dy": -1.2638888888888857,
+      "zoom": 0.9,
+      "finalSimulationTime": 1.25,
+      "coverage": "Real mouse plus DOM UI-pointer interruption; not native multi-touch"
+    },
+    {
+      "project": "rally-siege-mobile-webkit",
+      "result": "passed",
+      "caseWallSeconds": 2.0,
+      "movementWaitWallMs": 137,
+      "dx": 1.2909722222222229,
+      "dy": -1.2909722222222193,
+      "zoom": 0.9,
+      "finalSimulationTime": 1.25,
+      "coverage": "Real mouse plus DOM UI-pointer interruption; not native multi-touch"
+    }
+  ],
+  "allSupportedProjectVariants": [
+    {
+      "project": "desktop-chromium",
+      "result": "passed",
+      "caseWallSeconds": 2.2,
+      "movementWaitWallMs": 34,
+      "dx": 0.17488611111110686,
+      "dy": -0.17488611111110686,
+      "zoom": 1.5517241379310345,
+      "finalSimulationTime": 1.45,
+      "coverage": "Real mouse plus DOM UI-pointer interruption; not native multi-touch"
+    },
+    {
+      "project": "landscape-webkit",
+      "result": "passed",
+      "caseWallSeconds": 2.3,
+      "movementWaitWallMs": 142,
+      "dx": 1.3342105263157862,
+      "dy": -1.3342105263157862,
+      "zoom": 0.95,
+      "finalSimulationTime": 1.6,
+      "coverage": "Real mouse plus DOM UI-pointer interruption; not native multi-touch"
+    },
+    {
+      "project": "mobile-chromium",
+      "result": "passed",
+      "caseWallSeconds": 3.2,
+      "movementWaitWallMs": 28,
+      "dx": 0.14368421052631675,
+      "dy": -0.14368421052631675,
+      "zoom": 0.95,
+      "finalSimulationTime": 2.45,
+      "coverage": "Native touch handoff"
+    },
+    {
+      "project": "rally-siege-mobile-chromium",
+      "result": "passed",
+      "caseWallSeconds": 3.6,
+      "movementWaitWallMs": 137,
+      "dx": 1.2034027777777787,
+      "dy": -1.2034027777777698,
+      "zoom": 0.9,
+      "finalSimulationTime": 2.85,
+      "coverage": "Native touch handoff"
+    },
+    {
+      "project": "rally-siege-mobile-webkit",
+      "result": "passed",
+      "caseWallSeconds": 2.0,
+      "movementWaitWallMs": 138,
+      "dx": 1.1826388888888886,
+      "dy": -1.1826388888888886,
+      "zoom": 0.9,
+      "finalSimulationTime": 1.2,
+      "coverage": "Real mouse plus DOM UI-pointer interruption; not native multi-touch"
+    }
+  ],
+  "physicalDevicePerformanceClaim": false
+}
